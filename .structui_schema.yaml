@@ -410,204 +410,372 @@ detection_rate:
 name:
   type: string
   is_label: true
+  required: true
   desc: The human-readable name of the configuration.
 ecu_name:
   type: string
   is_label: true
+  required: true
   desc: The unique name of the Electronic Control Unit.
 itf_name:
   type: string
   is_label: true
+  required: true
   desc: The physical or virtual interface name (e.g., can_stub_if).
 bus_name:
   type: string
   is_label: true
+  required: true
   desc: The hardware communication bus mapping name.
 request_name:
   type: string
   is_label: true
+  required: true
   desc: Label for register collection request grouping.
 
 id:
   type: integer
-  desc: Message Identifier.
+  required: true
+  desc: Message Identifier on the network protocol.
 direction:
   type: string
   options: ['tx', 'rx']
+  required: true
+  desc: The logical flow direction of the network frame.
 enabled:
   type: boolean
+  required: false
+  desc: Toggles the active state of this object.
 logging_enabled:
   type: boolean
+  required: false
+  desc: Whether traffic on this interface should be logged.
 log_prefix:
   type: string
+  required: false
+  desc: The filename prefix or directory for captured logs.
 log_max_size_mb:
   type: integer
+  required: false
+  desc: Maximum accumulated log size before rollover.
 bustype:
   type: string
   options: ['vector', 'stub', 'virtual']
+  required: true
+  desc: Hardware interface driver standard.
 channel:
   type: integer
+  required: true
+  desc: The specific hardware channel index.
 baudrate:
   type: integer
+  required: false
+  desc: Arbitration bitrate for CAN interfaces.
 data_bitrate:
   type: integer
+  required: false
+  desc: Data phase bitrate for CAN FD interfaces.
 mac_address:
   type: string
   pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+  required: true
+  desc: Physical MAC address of the Ethernet interface.
 vlan:
   type: integer
+  required: false
+  desc: The virtual LAN tag ID.
 vlan_prio:
   type: integer
+  required: false
+  desc: The priority tag within the VLAN frame.
 request_src_ip_address:
   type: string
+  required: false
+  desc: Sender internet protocol address.
 request_dst_ip_address:
   type: string
+  required: false
+  desc: Target receiver internet protocol address.
 request_length:
   type: integer
+  required: false
+  desc: Fixed frame length in bytes.
 ip_ttl:
   type: integer
+  required: false
+  desc: Time-To-Live hop limit for the packet.
 src_port:
   type: integer
+  required: false
+  desc: The source UDP/TCP port.
 dst_port:
   type: integer
+  required: false
+  desc: The destination UDP/TCP port.
 eth_type:
   type: string
+  required: false
+  desc: Standard Ethernet II EtherType field.
 dest_mac:
   type: string
+  required: false
+  desc: The destination MAC address resolving.
 isTp:
   type: boolean
+  required: false
+  desc: Whether this uses the Transport Protocol standard.
 usage:
   type: string
   options: ['diag', 'livedata', 'timesync', 'network_management']
+  required: true
+  desc: The functional categorization of the frame.
 counterpart:
   type: string
-  
+  required: false
   desc: Counter part is mandatory in case of CAN FD
 is_fd:
   type: boolean
+  required: false
+  desc: Marks if the interface allows flexible data rate formats.
 length:
   type: integer
+  required: true
+  desc: Number of bytes or bits in the payload.
 byte_order:
   type: string
   options: ['little', 'big']
+  required: true
+  desc: The target system endianness format.
 no_data_timeout_ms:
   type: integer
+  required: false
+  desc: Millisecond timeout before throwing a disconnect error.
 raw_data_format:
   type: string
   options: ['decimal', 'hex', 'octal']
+  required: false
+  desc: View representation style of raw outputs.
 start_bit:
   type: integer
+  required: true
+  desc: The starting bit offset inside the parent frame's payload.
 bit_length:
   type: integer
+  required: true
+  desc: The precise width of this signal mapping.
 type:
   type: string
+  required: false
   desc: The logic mapping type of the element.
 data_type:
   type: string
   options: ['ascii', 'float', 'double', 'int']
+  required: true
+  desc: Primitive type casting class for decoding.
 mask:
   type: string
+  required: false
+  desc: Bitmask to apply directly to the extracted value.
 is_signed:
   type: boolean
+  required: false
+  desc: Indicates a Two's Complement signed payload.
 enums:
   type: dict
+  required: false
+  desc: Meaningful string mappings for specific integral values.
 meta_data:
   type: string
+  required: false
+  desc: Extra descriptive information mapped to the item.
 factor:
   type: float
+  required: false
+  desc: Extracted scalar multiplied against raw bit readings.
 offset:
   type: float
+  required: false
+  desc: Base value added to the scaled reading.
 low_threshold:
   type: float
+  required: false
+  desc: Floor range limit for valid operations.
 high_threshold:
   type: float
+  required: false
+  desc: Ceiling range limit for valid operations.
 value:
   type: float
+  required: true
+  desc: Exact numeric value matched or injected.
 range:
   type: list
+  required: false
+  desc: List array bounds for continuous operations.
 recording_time:
   type: integer
+  required: false
+  desc: Capture duration target window.
 detection_drop:
   type: integer
+  required: false
+  desc: Frame cycles mapped continuously missing before clearing.
 confirmation_time_ms:
   type: integer
+  required: false
+  desc: Signal debounce timing to declare logical HIGH.
 deconfirmation_time_ms:
   type: integer
+  required: false
+  desc: Signal debounce timing to declare logical LOW.
 service_id:
   type: integer
+  required: false
+  desc: The UDS or specific protocol service API identifier.
 module:
   type: integer
+  required: false
+  desc: Internal ECU code module target layer.
 api_id:
   type: integer
+  required: false
+  desc: Specific sub-function handler identifier.
 core_id:
   type: integer
+  required: false
+  desc: Selected system MCU core responding (0, 1).
 delay:
   type: integer
+  required: false
+  desc: Integral operation pause mechanism.
 delay_ms:
   type: float
+  required: false
+  desc: Sub-millisecond timing gaps executed sequentially.
 bus_id:
   type: integer
+  required: false
+  desc: Active mapped hardware internal pathway.
 arguments:
   type: list
+  required: false
   desc: Array of parameters corresponding to API commands.
 service_ids:
   type: dict
+  required: false
+  desc: Known identifiers dictionary lookups.
 core_ids:
   type: list
+  required: false
+  desc: Defined processor execution elements.
 comm_timeout_s:
   type: float
+  required: false
+  desc: Blocking operation threshold mapped internally.
 reserved_bytes_count:
   type: integer
+  required: false
+  desc: Data alignment spacer bytes configuration.
 request_frame_name:
   type: string
+  required: false
+  desc: Identifier representing physical network transmit request.
 response_frame_name:
   type: string
+  required: false
+  desc: Mapping pointer matching hardware acknowledge frame.
 device_id:
   type: string
+  required: false
+  desc: Sub-component serial connection index.
 phy_address:
   type: string
+  required: false
+  desc: Active physical chip routing standard.
 ecu:
   type: string
+  required: false
+  desc: Network target controller.
 address:
   type: string
+  required: true
+  desc: Specified memory map start address pointer.
 port_no:
   type: integer
+  required: true
+  desc: Active local hardware routing port.
 bank_no:
   type: integer
+  required: false
+  desc: Target partition inside global memory layout.
 ether_type:
   type: string
+  required: false
+  desc: Configured traffic payload frame classification.
 die0_mac:
   type: string
+  required: false
+  desc: Fixed chip network mapping string.
 timeout:
   type: integer
+  required: false
+  desc: Standard drop delay response criteria.
 binary_file:
   type: string
+  required: false
+  desc: Executable hex configuration file.
 dt:
   type: string
   is_label: true
+  required: false
+  desc: Definition action logical type.
 io:
   type: string
+  required: false
+  desc: Command injected IO parameter block.
 'is':
   type: string
+  required: false
+  desc: Sequence input target.
 da:
   type: string
+  required: false
+  desc: Sequence execution array matching.
 dn:
   type: string
+  required: false
+  desc: Sequence action logical jump logic.
 tx_errors:
   type: integer
+  required: false
+  desc: Allowed outgoing transmission failure thresholds.
 rx_errors:
   type: integer
+  required: false
+  desc: Configured inbound checksum missing limits.
 total_error_frames:
   type: integer
+  required: false
+  desc: Cumulative bus limit shutdown cap.
 output_message_name:
   type: string
+  required: false
+  desc: Matching converted log routing name.
 output_signal_name:
   type: string
+  required: false
+  desc: Specific nested mapping component internally generated.
 msg_id:
   type: string
+  required: false
+  desc: Source log generated hex mapping signature.
 method:
   type: string
   options: ['rmu', 'vnode']
+  required: false
+  desc: Backend communication handling interface.
 die_number:
   type: string
   options: ['0', '1']
+  required: false
+  desc: Active internal board chip module targeting.
