@@ -81,12 +81,13 @@ class StructUI:
                     label = self.schema_manager.get_item_label(v, f"{path}/{i}", self.state.config_data, f"[{i}]")
                     children.append(self.build_tree_nodes(v, f"{path}/{i}", label))
                     
-        if has_prims:
+        if children and has_prims:
+            node['icon'], node['color'] = 'folder_special', 'purple'
+        elif children and not has_prims:
+            node['icon'], node['color'] = 'folder', 'primary'
+        elif not children and has_prims:
             node['icon'], node['color'] = 'settings', 'blue-8'
         else:
-            node['icon'], node['color'] = 'folder', 'primary'
-            
-        if not children and not has_prims:
             node['icon'], node['color'] = 'folder_open', 'grey-5'
                     
         if children:
