@@ -2,3 +2,15 @@
 **/*.egg-info
 dist/*.whl
 dist/*.tar.gz
+
+# Node.js / Docusaurus
+node_modules/
+build/
+.docusaurus/
+*.log
+.env*
+
+# Python additional
+*.pyc
+.venv/
+venv/
