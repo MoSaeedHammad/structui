@@ -1,0 +1,613 @@
+# ==========================================
+# Root Files Mapping
+# ==========================================
+root:
+  type: container
+  desc: Root directory containing configuration files.
+  allowed_children: [connections, frame_sender, livedata_cfg, memory_explorer, radar, sensor_controls, serial_interface, service_controls, stress_functions, test_sequences, vnodelink_configuration, eth_switch, bus_statistics, castle_log_converter]
+
+connections:
+  type: list
+  desc: Network connections and ECUs file root.
+  list_item_type: ecu
+
+frame_sender:
+  type: dict
+  desc: Frame sender configurations per ECU.
+
+livedata_cfg:
+  type: container
+  desc: Live data configurations.
+  allowed_children: [messages]
+
+memory_explorer:
+  type: container
+  desc: Memory Explorer configurations.
+  allowed_children: [defaults, register_access, block_access]
+
+radar:
+  type: container
+  desc: Radar detection and frame mapping configurations.
+  allowed_children: [point_cloud, Frames, visualization, reference_target, unwanted_detections]
+
+sensor_controls:
+  type: container
+  desc: Sensor controls configurations.
+  list_item_type: sensor_control
+  allowed_children: [defaults, sensor_controls]
+
+serial_interface:
+  type: container
+  desc: Serial interface definitions (I2C, SPI, MDIO).
+  allowed_children: [defaults, i2c_devices, spi_devices, mdio_devices]
+
+service_controls:
+  type: container
+  desc: Service control parameters.
+  allowed_children: [defaults, service_control_config]
+
+stress_functions:
+  type: container
+  desc: Stress testing endpoints.
+  allowed_children: [defaults, core_stress, ddr_stress, bus_stress, nvmem_stress]
+
+test_sequences:
+  type: dict
+  desc: Defined test sequences grouped by ECU.
+  allowed_children: [defaults]
+
+vnodelink_configuration:
+  type: container
+  desc: Core vnodelink and networking parameters.
+  allowed_children: [service_ids, core_ids, comm_timeout_s, reserved_bytes_count, request_frame_name, response_frame_name]
+
+eth_switch:
+  type: container
+  desc: Ethernet Switch configurations and RMU registers.
+  allowed_children: [read_action, general_registers, status_registers, mib_counters_basic, mib_counters_extended, rmu_config, flashing_config]
+
+bus_statistics:
+  type: container
+  desc: CAN/ETH Bus error statistics thresholds.
+  allowed_children: [thresholds]
+
+castle_log_converter:
+  type: container
+  desc: Maps log commands to output message/signal definitions.
+  allowed_children: [raw_data_mapping, standalone_signal_columns, signal_mapping]
+
+
+# ==========================================
+# ECU & Network Definition
+# ==========================================
+ecu:
+  type: container
+  label_key: ecu_name
+  desc: Electronic Control Unit.
+  allowed_children: [ecu_name, enabled, logging_enabled, log_prefix, log_max_size_mb, interfaces]
+
+interfaces:
+  type: list
+  desc: List of physical or virtual network interfaces configured for this ECU.
+  list_item_types: ['can_interface', 'eth_interface']
+  
+can_interface:
+  type: container
+  label_key: itf_name
+  desc: A CAN network interface connection.
+  allowed_children: [itf_name, protocol, bustype, channel, baudrate, data_bitrate, frames]
+
+eth_interface:
+  type: container
+  label_key: itf_name
+  desc: An Ethernet network interface connection.
+  allowed_children: [itf_name, protocol, interface, mac_address, request_src_ip_address, request_dst_ip_address, request_length, vlan, ip_ttl, frames]
+
+
+# ==========================================
+# Frames Definition
+# ==========================================
+frames:
+  type: list
+  desc: List of network frames or messages associated with this interface.
+  list_item_types: ['can_frame', 'eth_frame']
+
+Frames:
+  type: list
+  desc: Alternate capitalization for radar frames.
+  list_item_types: ['radar_frame']
+  
+can_frame:
+  type: container
+  label_key: name
+  desc: A single CAN network frame.
+  allowed_children: [name, id, isTp, direction, usage, counterpart, is_fd]
+
+eth_frame:
+  type: container
+  label_key: name
+  desc: A single Ethernet network frame.
+  allowed_children: [name, src_port, dst_port, direction, usage, counterpart, eth_type, dest_mac, vlan, vlan_prio]
+
+radar_frame:
+  type: container
+  label_key: name
+  desc: Frame payload format for radar point clouds.
+  allowed_children: [name, length, byte_order, signals]
+
+
+# ==========================================
+# Live Data / Messages Definition
+# ==========================================
+messages:
+  type: list
+  desc: Definitions of incoming network messages.
+  list_item_type: message
+
+message:
+  type: container
+  label_key: name
+  desc: A single message definition.
+  allowed_children: [name, length, byte_order, no_data_timeout_ms, raw_data_format, signals]
+
+signals:
+  type: list
+  desc: List of data signals extracted from the parent message payload.
+  list_item_type: signal
+
+signal:
+  type: container
+  label_key: name
+  desc: A single signal definition.
+  allowed_children: [name, start_bit, bit_length, type, data_type, is_signed, enums, meta_data, factor, offset, mask, low_threshold, high_threshold, confirmation_time_ms, deconfirmation_time_ms]
+
+
+# ==========================================
+# Component Blocks (Hardware, Radar, IO)
+# ==========================================
+defaults:
+  type: container
+  desc: Global default parameters for the group.
+  allowed_children: [service_id, module, api_id, core_id, delay, delay_ms, bus_id, arguments]
+
+action:
+  type: container
+  desc: Action definition block.
+  allowed_children: [service_id, module, api_id, core_id, delay, delay_ms, arguments, method, die_number]
+
+register_access:
+  type: container
+  allowed_children: [read_action, write_action]
+
+block_access:
+  type: container
+  allowed_children: [read_action, write_action]
+
+read_action:
+  type: container
+  allowed_children: [service_id, module, api_id, core_id, arguments, method, die_number]
+
+write_action:
+  type: container
+  allowed_children: [service_id, module, api_id, core_id, arguments, method, die_number]
+
+trigger_action:
+  type: container
+  allowed_children: [service_id, module, api_id, core_id, arguments]
+
+release_action:
+  type: container
+  allowed_children: [service_id, module, api_id, core_id, arguments]
+
+enable_action:
+  type: container
+  allowed_children: [service_id, module, api_id, core_id, arguments]
+
+disable_action:
+  type: container
+  allowed_children: [service_id, module, api_id, core_id, arguments]
+
+service_control_config:
+  type: container
+  allowed_children: [enable_action, disable_action]
+
+sensor_control:
+  type: container
+  label_key: name
+  allowed_children: [name, trigger_action, release_action]
+
+stress_test:
+  type: container
+  label_key: name
+  allowed_children: [name, trigger_action, release_action]
+
+core_stress:
+  type: list
+  list_item_type: stress_test
+
+ddr_stress:
+  type: list
+  list_item_type: stress_test
+
+bus_stress:
+  type: list
+  list_item_type: stress_test
+
+nvmem_stress:
+  type: list
+  list_item_type: stress_test
+
+i2c_devices:
+  type: list
+  list_item_type: serial_bus
+
+spi_devices:
+  type: list
+  list_item_type: serial_bus
+
+mdio_devices:
+  type: list
+  list_item_type: serial_bus
+
+serial_bus:
+  type: container
+  label_key: bus_name
+  allowed_children: [bus_name, devices]
+
+devices:
+  type: dict
+  desc: Map of specific devices connected to the bus.
+
+steps:
+  type: list
+  list_item_type: sequence_step
+
+sequence_step:
+  type: container
+  label_key: name
+  allowed_children: [type, name, action, delay_ms, arguments, ecu]
+
+# ==========================================
+# Ethernet Switch Sub-Blocks
+# ==========================================
+general_registers:
+  type: list
+  list_item_types: ['register_request', 'eth_register']
+
+status_registers:
+  type: list
+  list_item_types: ['register_request', 'eth_register']
+
+mib_counters_basic:
+  type: list
+  list_item_types: ['register_request', 'eth_register']
+
+mib_counters_extended:
+  type: list
+  list_item_types: ['register_request', 'eth_register']
+
+register_request:
+  type: container
+  label_key: request_name
+  allowed_children: [request_name]
+
+eth_register:
+  type: container
+  label_key: name
+  allowed_children: [name, address, port_no, device_id, bank_no, id]
+
+rmu_config:
+  type: container
+  allowed_children: [ether_type, die0_mac, timeout]
+
+flashing_config:
+  type: container
+  allowed_children: [binary_file, commands]
+
+commands:
+  type: list
+  list_item_type: flash_command
+
+flash_command:
+  type: container
+  label_key: dt
+  allowed_children: [dt, io, 'is', da, dn]
+
+# ==========================================
+# Log Converter Sub-Blocks
+# ==========================================
+raw_data_mapping:
+  type: dict
+
+standalone_signal_columns:
+  type: dict
+
+signal_mapping:
+  type: dict
+
+# ==========================================
+# Bus Statistics Sub-Blocks
+# ==========================================
+thresholds:
+  type: container
+  allowed_children: [tx_errors, rx_errors, total_error_frames, bus_status_triggers]
+
+bus_status_triggers:
+  type: list
+
+
+# ==========================================
+# Radar Sub-Blocks
+# ==========================================
+point_cloud:
+  type: container
+  allowed_children: [name, detections]
+
+detections:
+  type: list
+  desc: List of data targets mapped from radar frame.
+
+visualization:
+  type: list
+  desc: Features selected for UI render.
+
+reference_target:
+  type: container
+  allowed_children: [enabled, detection_drop, range, x_coord, y_coord, z_coord, speed, snr]
+
+x_coord:
+  type: container
+  allowed_children: [enabled, low_threshold, high_threshold, value]
+
+y_coord:
+  type: container
+  allowed_children: [enabled, low_threshold, high_threshold, value]
+
+z_coord:
+  type: container
+  allowed_children: [enabled, low_threshold, high_threshold, value]
+
+speed:
+  type: container
+  allowed_children: [enabled, low_threshold, high_threshold, value]
+
+snr:
+  type: container
+  allowed_children: [enabled, low_threshold, high_threshold, value]
+
+unwanted_detections:
+  type: container
+  allowed_children: [enabled, recording_time, filter, min_range, persistance, motion, detection_rate]
+
+filter:
+  type: container
+  allowed_children: [infra_removal, enabled]
+
+infra_removal:
+  type: container
+  allowed_children: [enabled]
+
+min_range:
+  type: container
+  allowed_children: [enabled, value]
+
+persistance:
+  type: container
+  allowed_children: [enabled, value]
+
+motion:
+  type: container
+  allowed_children: [enabled, value]
+
+detection_rate:
+  type: container
+  allowed_children: [enabled, value]
+
+
+# ==========================================
+# Base Data Primitives
+# ==========================================
+name:
+  type: string
+  is_label: true
+  desc: The human-readable name of the configuration.
+ecu_name:
+  type: string
+  is_label: true
+  desc: The unique name of the Electronic Control Unit.
+itf_name:
+  type: string
+  is_label: true
+  desc: The physical or virtual interface name (e.g., can_stub_if).
+bus_name:
+  type: string
+  is_label: true
+  desc: The hardware communication bus mapping name.
+request_name:
+  type: string
+  is_label: true
+  desc: Label for register collection request grouping.
+
+id:
+  type: integer
+  desc: Message Identifier.
+direction:
+  type: string
+  options: ['tx', 'rx']
+enabled:
+  type: boolean
+logging_enabled:
+  type: boolean
+log_prefix:
+  type: string
+log_max_size_mb:
+  type: integer
+bustype:
+  type: string
+  options: ['vector', 'stub', 'virtual']
+channel:
+  type: integer
+baudrate:
+  type: integer
+data_bitrate:
+  type: integer
+mac_address:
+  type: string
+  pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+vlan:
+  type: integer
+vlan_prio:
+  type: integer
+request_src_ip_address:
+  type: string
+request_dst_ip_address:
+  type: string
+request_length:
+  type: integer
+ip_ttl:
+  type: integer
+src_port:
+  type: integer
+dst_port:
+  type: integer
+eth_type:
+  type: string
+dest_mac:
+  type: string
+isTp:
+  type: boolean
+usage:
+  type: string
+  options: ['diag', 'livedata', 'timesync', 'network_management']
+counterpart:
+  type: string
+  
+  desc: Counter part is mandatory in case of CAN FD
+is_fd:
+  type: boolean
+length:
+  type: integer
+byte_order:
+  type: string
+  options: ['little', 'big']
+no_data_timeout_ms:
+  type: integer
+raw_data_format:
+  type: string
+  options: ['decimal', 'hex', 'octal']
+start_bit:
+  type: integer
+bit_length:
+  type: integer
+type:
+  type: string
+  desc: The logic mapping type of the element.
+data_type:
+  type: string
+  options: ['ascii', 'float', 'double', 'int']
+mask:
+  type: string
+is_signed:
+  type: boolean
+enums:
+  type: dict
+meta_data:
+  type: string
+factor:
+  type: float
+offset:
+  type: float
+low_threshold:
+  type: float
+high_threshold:
+  type: float
+value:
+  type: float
+range:
+  type: list
+recording_time:
+  type: integer
+detection_drop:
+  type: integer
+confirmation_time_ms:
+  type: integer
+deconfirmation_time_ms:
+  type: integer
+service_id:
+  type: integer
+module:
+  type: integer
+api_id:
+  type: integer
+core_id:
+  type: integer
+delay:
+  type: integer
+delay_ms:
+  type: float
+bus_id:
+  type: integer
+arguments:
+  type: list
+  desc: Array of parameters corresponding to API commands.
+service_ids:
+  type: dict
+core_ids:
+  type: list
+comm_timeout_s:
+  type: float
+reserved_bytes_count:
+  type: integer
+request_frame_name:
+  type: string
+response_frame_name:
+  type: string
+device_id:
+  type: string
+phy_address:
+  type: string
+ecu:
+  type: string
+address:
+  type: string
+port_no:
+  type: integer
+bank_no:
+  type: integer
+ether_type:
+  type: string
+die0_mac:
+  type: string
+timeout:
+  type: integer
+binary_file:
+  type: string
+dt:
+  type: string
+  is_label: true
+io:
+  type: string
+'is':
+  type: string
+da:
+  type: string
+dn:
+  type: string
+tx_errors:
+  type: integer
+rx_errors:
+  type: integer
+total_error_frames:
+  type: integer
+output_message_name:
+  type: string
+output_signal_name:
+  type: string
+msg_id:
+  type: string
+method:
+  type: string
+  options: ['rmu', 'vnode']
+die_number:
+  type: string
+  options: ['0', '1']
