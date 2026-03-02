@@ -1,50 +1,26 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# The StructUI Constitution
 
-## Core Principles
+## System Context & Role
+StructUI is an expert-level configuration editor and validator, designed to provide a robust, generic, and metadata-driven interface for complex data structures. This constitution dictates the engineering philosophy and contribution rules for the project.
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+## Engineering Principles
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### 1. Separation of Concerns
+The UI layer **MUST** remain entirely ignorant of the underlying data format.
+- Parsers (JSON, YAML, XML, CSV) map purely to an internal unified state.
+- The UI reads exclusively from this unified generic state, never parsing files directly.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### 2. Strict Immutability in Validation
+UI inputs **CANNOT** modify the underlying schema.
+- The schema is the absolute source of truth and dictates all validation rules.
+- The UI strictly enforces these rules and rejects invalid state mutations.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### 3. Domain Extensibility (The AUTOSAR Principle)
+The core engine **MUST** remain generic.
+- Complex, domain-specific logic (e.g., standardizing open-source AUTOSAR configurations) must be implemented strictly via modular plugins or sub-classing.
+- No domain-specific hacks or hardcoded business logic shall clutter the core codebase.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
-
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
-
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
-
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
-
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+### 4. Agent-Friendly CLI
+The tool **MUST** support headless or CLI-driven execution alongside the GUI.
+- It must be fully interoperable with external AI orchestration workflows and agentic pipelines (e.g., OpenClaw integrations).
+- Core actions (loading, validating, saving) must be accessible via programmatic APIs and CLI entrypoints.
