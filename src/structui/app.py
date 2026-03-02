@@ -12,5 +12,4 @@ def run_app(data_dir: str = ".", schema_filepath: str = ".structui_schema.yaml",
     @ui.page('/')
     def main_page():
         ui_instance.render()
-        
     ui.run(port=port, title="StructUI Editor", show=False, reload=False)

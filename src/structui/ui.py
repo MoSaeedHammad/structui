@@ -22,7 +22,8 @@ class StructUI:
 
     def get_allowed_options(self, path: str, data_node: Any) -> List[Dict[str, str]]:
         schema_key = self.schema_manager.get_schema_key_for_path(path, self.state.config_data)
-        allowed_from_schema = self.schema_manager.get_meta(schema_key).get('allowed_children', []) if schema_key else []
+        meta = self.schema_manager.get_meta(schema_key) if schema_key else {}
+        allowed_from_schema = meta.get('allowed_children', [])
         allowed_options = []
         
         if isinstance(data_node, dict):
@@ -38,7 +39,9 @@ class StructUI:
                         else:
                             item_type = child_meta.get('list_item_type', child)
                             allowed_options.append({'label': f"Add New {item_type.replace('_', ' ').title()} to {child}", 'type': 'list_item_append', 'key': child, 'item_type': item_type})
-            allowed_options.append({'label': "Add Custom File" if path == "root" else "Add Custom Key", 'type': 'custom_dict'})
+                            
+            if not meta.get('restrict_custom_keys', False):
+                allowed_options.append({'label': "Add Custom File" if path == "root" else "Add Custom Key", 'type': 'custom_dict'})
             
         elif isinstance(data_node, list):
             meta = self.schema_manager.get_meta(schema_key) if schema_key else {}
@@ -112,13 +115,17 @@ class StructUI:
         if not self.selected_path["value"]:
             self.selected_path["value"] = "root"
             
-        # Update Save Button State dynamically
-        if hasattr(self, 'save_btn'):
+        self.update_save_btn_state()
+
+        self.draw_editor(self.selected_path["value"])
+
+    def update_save_btn_state(self):
+        if getattr(self, 'save_btn', None):
             if getattr(self.state, 'is_dirty', False):
-                self.save_btn.props(remove='color=blue-500', add='color=orange-600')
+                self.save_btn._props['color'] = 'warning'
                 self.save_btn.tooltip('Unsaved Changes Available!')
             else:
-                self.save_btn.props(remove='color=orange-600', add='color=blue-500')
+                self.save_btn._props['color'] = 'primary'
                 self.save_btn.tooltip('Save Configurations')
             self.save_btn.update()
 
@@ -145,6 +152,56 @@ class StructUI:
                 req_color = "red-100 text-red-800" if is_req else "green-100 text-green-800"
                 ui.badge("Required" if is_req else "Optional").classes(f'ml-2 {req_color} font-bold border border-current')
             ui.markdown(meta.get('desc', 'No description provided.')).classes('text-gray-700 dark:text-gray-300 text-md ml-8')
+
+    def handle_add_node(self, path: str, option: Dict[str, str]):
+        data_node = self.state.get_data_by_path(path)
+        opt_type = option['type']
+        
+        if opt_type == 'dict_key':
+            if isinstance(data_node, dict):
+                k = option.get('key')
+                meta_type = self.schema_manager.get_meta(k).get('type')
+                if meta_type == 'list':
+                    data_node[k] = []
+                elif meta_type in ['container', 'dict']:
+                    data_node[k] = {}
+                elif meta_type == 'bool':
+                    data_node[k] = False
+                elif meta_type in ['int', 'number', 'float']:
+                    data_node[k] = 0
+                else:
+                    data_node[k] = ""
+        elif opt_type == 'custom_dict':
+            if isinstance(data_node, dict):
+                with ui.dialog() as dialog, ui.card().classes('min-w-[300px]'):
+                    def perform_add(dyn_key, dyn_type):
+                        if dyn_key:
+                            if dyn_type == 'dict': data_node[dyn_key] = {}
+                            elif dyn_type == 'list': data_node[dyn_key] = []
+                            elif dyn_type == 'string': data_node[dyn_key] = ""
+                            elif dyn_type == 'integer': data_node[dyn_key] = 0
+                            elif dyn_type == 'boolean': data_node[dyn_key] = False
+                        dialog.close()
+                        self.state.commit()
+                        self.refresh_tree_and_editor()
+                    ui.label('Enter new key name:').classes('font-bold')
+                    inp = ui.input().classes('w-full')
+                    ui.label('Select Type:').classes('font-bold mt-2')
+                    type_sel = ui.select(['string', 'integer', 'boolean', 'list', 'dict'], value='string').classes('w-full')
+                    ui.button('Add', on_click=lambda: perform_add(inp.value, type_sel.value)).classes('mt-4 w-full')
+                dialog.open()
+                return
+        elif opt_type in ['list_item', 'list_item_typed']:
+            if isinstance(data_node, list):
+                data_node.append({})
+        elif opt_type == 'list_item_append':
+            if isinstance(data_node, dict):
+                list_key = option.get('key')
+                if list_key in data_node and isinstance(data_node[list_key], list):
+                    data_node[list_key].append({})
+                    
+        self.state.commit()
+        self.refresh_tree_and_editor()
 
     def draw_editor(self, path: str):
         if not path:
@@ -177,49 +234,78 @@ class StructUI:
             
             # EDITOR HEADER
             with ui.row().classes('w-full items-center justify-between mb-4 pb-2 border-b border-gray-200 dark:border-slate-700'):
-                with ui.row().classes('items-center gap-2'):
+                with ui.row().classes('items-center bg-slate-50 dark:bg-slate-900 gap-2'):
                     prop_search = ui.input('Search properties...').classes('w-64').props('dense rounded outlined')
-                    ui.button(icon='my_location', on_click=lambda: ui.notify('Located in tree', color='blue')).props('flat round').tooltip('Locate in Tree')
-                
-                if path != "root":
-                    def delete_current_container():
-                        parent_path = "/".join(path.split('/')[:-1])
-                        node_key = path.split('/')[-1]
-                        parent_node = self.state.get_data_by_path(parent_path)
-                        if isinstance(parent_node, dict): del parent_node[node_key]
-                        elif isinstance(parent_node, list): parent_node.pop(int(node_key))
-                        self.state.commit()
-                        self.selected_path["value"] = parent_path
-                        self.refresh_tree_and_editor()
+                    
+                    def locate_in_tree(p=path):
+                        if self.tree:
+                            parts = p.split('/')
+                            paths_to_expand = ['/'.join(parts[:i+1]) for i in range(len(parts))]
+                            self.tree.expand(paths_to_expand)
+                            ui.notify('Located in tree', color='blue')
 
-                    ui.button(icon='delete', color='red-500', on_click=delete_current_container).props('flat round').tooltip('Delete this entire container')
+                    ui.button(icon='my_location', on_click=locate_in_tree).props('flat round').classes('text-slate-600 dark:text-slate-400').tooltip('Locate in Tree')
+                    
+                    with ui.button(icon='add').props('flat round').classes('text-blue-500').tooltip('Add Property / Node'):
+                        with ui.menu() as add_menu:
+                            opts = self.get_allowed_options(path, data_node)
+                            if not opts:
+                                ui.menu_item('No actions available').classes('text-gray-400')
+                            for opt in opts:
+                                def make_add_callback(o=opt):
+                                    return lambda: self.handle_add_node(path, o)
+                                ui.menu_item(opt['label'], auto_close=True, on_click=make_add_callback()).classes('flex items-center gap-2')
+                                
+                    if path != "root":
+                        def delete_current_container():
+                            parent_path = "/".join(path.split('/')[:-1])
+                            node_key = path.split('/')[-1]
+                            parent_node = self.state.get_data_by_path(parent_path)
+                            if isinstance(parent_node, dict): parent_node.pop(node_key, None)
+                            elif isinstance(parent_node, list): parent_node.pop(int(node_key))
+                            self.state.commit()
+                            self.selected_path["value"] = parent_path
+                            self.refresh_tree_and_editor()
+
+                        ui.button(icon='delete', on_click=delete_current_container).props('flat round').classes('text-red-500').tooltip('Delete this entire container')
             
             # PRIMITIVES EDITOR
             props_container = ui.column().classes('w-full gap-4')
             
-            def render_primitive_input(k, v):
+            def render_primitive_input(k, v, parent_node):
                 def make_on_change(prop_key=k):
                     def handler(e):
                         self.state.set_data_by_path(self.selected_path["value"], str(prop_key), e.value)
                         self.state.commit()
+                        self.update_save_btn_state()
                     return handler
                     
                 meta = self.schema_manager.get_meta(str(k))
-                label_text = f"{k} *" if meta.get('required', False) else str(k)
+                is_required = meta.get('required', False)
+                label_text = f"{k} *" if is_required else str(k)
                 options = meta.get('options')
                 
-                if options:
-                    safe_options = list(options)
-                    if v not in safe_options: safe_options.append(v)
-                    inp = ui.select(safe_options, value=v, label=label_text).classes('flex-grow').on_value_change(make_on_change())
-                elif isinstance(v, bool):
-                    inp = ui.switch(text=label_text, value=v).on_value_change(make_on_change())
-                elif isinstance(v, (int, float)):
-                    inp = ui.number(label=label_text, value=v).classes('flex-grow').on_value_change(make_on_change())
-                else:
-                    inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
+                with ui.row().classes('items-center flex-grow flex-nowrap gap-2 w-full'):
+                    if options:
+                        safe_options = list(options)
+                        if v not in safe_options: safe_options.append(v)
+                        inp = ui.select(safe_options, value=v, label=label_text).classes('flex-grow').on_value_change(make_on_change())
+                    elif isinstance(v, bool):
+                        inp = ui.switch(text=label_text, value=v).on_value_change(make_on_change())
+                    elif isinstance(v, (int, float)):
+                        inp = ui.number(label=label_text, value=v).classes('flex-grow').on_value_change(make_on_change())
+                    else:
+                        inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
+                        
+                    inp.on('focus', lambda _: self.update_footer(str(k)))
                     
-                inp.on('focus', lambda _: self.update_footer(str(k)))
+                    if not is_required:
+                        def delete_prop(pk=k, pd=parent_node):
+                            if isinstance(pd, dict) and pk in pd: pd.pop(pk, None)
+                            elif isinstance(pd, list) and int(pk) < len(pd): pd.pop(int(pk))
+                            self.state.commit()
+                            self.refresh_tree_and_editor()
+                        ui.button(icon='delete_outline', color='red-400', on_click=delete_prop).props('flat round size=sm').tooltip('Remove Property').classes('mt-2')
                 
             with props_container:
                 has_primitives = False
@@ -228,27 +314,19 @@ class StructUI:
                         if not isinstance(v, (dict, list)):
                             has_primitives = True
                             with ui.row().classes('w-full items-center gap-2'):
-                                ui.icon('lock', size='sm').classes('text-gray-300 w-8') if self.schema_manager.get_meta(str(k)).get('required') else ui.icon('edit', size='sm').classes('text-blue-300 w-8')
-                                render_primitive_input(k, v)
+                                is_req = self.schema_manager.get_meta(str(k)).get('required', False)
+                                ui.icon('lock', size='sm').classes('text-gray-400 w-8') if is_req else ui.icon('edit', size='sm').classes('text-blue-400 w-8')
+                                render_primitive_input(k, v, data_node)
                 elif isinstance(data_node, list):
                     for i, v in enumerate(data_node):
                         if not isinstance(v, (dict, list)):
                             has_primitives = True
                             with ui.row().classes('w-full items-center gap-2'):
-                                ui.icon('edit', size='sm').classes('text-blue-300 w-8')
-                                render_primitive_input(i, v)
+                                ui.icon('edit', size='sm').classes('text-blue-400 w-8')
+                                render_primitive_input(i, v, data_node)
                                 
                 if not has_primitives:
                     ui.label("This node contains no primitive properties directly.").classes('text-gray-400 italic mt-2')
-
-            # ADD MENU
-            ui.separator().classes('my-6')
-            with ui.row().classes('w-full justify-start items-center gap-4'):
-                with ui.button('Add Property / Node', icon='add', color='primary'):
-                    with ui.menu() as add_menu:
-                        opts = self.get_allowed_options(path, data_node)
-                        for opt in opts:
-                            ui.menu_item(opt['label'], auto_close=True).classes('flex items-center gap-2')
             
             # SUB-CONTAINERS FOLDERS
             sub_containers = []
@@ -259,7 +337,8 @@ class StructUI:
             elif isinstance(data_node, list):
                 for i, v in enumerate(data_node):
                     if isinstance(v, (dict, list)):
-                        sub_containers.append((f"Item [{i}]", f"{path}/{i}"))
+                        item_label = self.schema_manager.get_item_label(v, f"{path}/{i}", self.state.config_data, f"Item [{i}]")
+                        sub_containers.append((item_label, f"{path}/{i}"))
                         
             if sub_containers:
                 ui.separator().classes('my-6')
@@ -278,13 +357,19 @@ class StructUI:
                 body.body--light { background-color: #f8fafc; }
                 body.body--dark { background-color: #0f172a; }
                 .q-tree__node-header { width: 100%; }
+                
+                body.body--dark .q-tree { color: #e2e8f0 !important; }
+                body.body--dark .q-field__native, body.body--dark .q-field__label { color: #e2e8f0 !important; }
+                body.body--dark .q-card { background-color: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+                body.body--dark .bg-slate-50 { background-color: #0f172a !important; border-color: #334155 !important; }
             </style>
         ''')
         
         with ui.header().classes('bg-slate-800 text-white shadow-md p-4 flex justify-between items-center'):
-            with ui.row().classes('items-center gap-3'):
+            with ui.row().classes('items-center gap-3 w-1/2 overflow-hidden'):
                 ui.icon('settings_input_component', size='md')
                 ui.label('StructUI Editor').classes('text-xl font-bold tracking-wide')
+                ui.badge().classes('text-xs ml-4 py-1 px-2 font-mono truncate max-w-sm').bind_text_from(self.state, 'data_dir', backward=lambda d: f"Workspace: {d}" if d else "No Workspace Loaded")
             
             with ui.row().classes('gap-2 items-center'):
                 ui.button(icon='dark_mode', on_click=lambda: self.dark_mode.set_value(not self.dark_mode.value)).props('flat round color=white')
@@ -308,8 +393,8 @@ class StructUI:
                         self.refresh_tree_and_editor()
                         ui.notify(f'Loaded Schema from {os.path.basename(self.schema_manager.schema_filepath)}', color='blue')
 
-                ui.button('Load Configs', icon='folder_open', color='slate-600', on_click=pick_config_dir).props('flat outline').tooltip("Select configuration directory to load")
-                ui.button('Load Schema', icon='schema', color='slate-600', on_click=pick_schema_file).props('flat outline').tooltip("Select schema file to load")
+                ui.button('Load Configs', icon='folder_open', color='slate-600', on_click=pick_config_dir).props('outline').tooltip("Select configuration directory to load")
+                ui.button('Load Schema', icon='schema', color='slate-600', on_click=pick_schema_file).props('outline').tooltip("Select schema file to load")
                 
                 ui.separator().props('vertical color=gray-500').classes('mx-2')
                 
@@ -325,24 +410,46 @@ class StructUI:
                 ui.button(icon='undo', color='slate-600', on_click=lambda: self.refresh_tree_and_editor() if self.state.undo() else ui.notify('Nothing to undo', type='warning')).props('flat round')
                 ui.button(icon='redo', color='slate-600', on_click=lambda: self.refresh_tree_and_editor() if self.state.redo() else ui.notify('Nothing to redo', type='warning')).props('flat round')
                 ui.separator().props('vertical')
-                self.save_btn = ui.button(icon='save', color='blue-500', on_click=lambda: (self.state.save_all_to_disk(), ui.notify('Saved Configurations', color='green'), self.refresh_tree_and_editor())).props('flat round')
+                self.save_btn = ui.button(icon='save', color='primary', on_click=lambda: (self.state.save_all_to_disk(), ui.notify('Saved Configurations', color='green'), self.refresh_tree_and_editor())).props('round')
+                self.save_btn.tooltip('Save Configurations')
                 ui.button(icon='power_settings_new', color='red-500', on_click=exit_dialog.open).props('flat round').tooltip('Exit Application')
         
-        with ui.row().classes('w-full h-screen p-4 gap-4 flex-nowrap'):
+        with ui.row().classes('w-full h-[calc(100vh-80px)] overflow-hidden p-4 gap-4 flex-nowrap'):
             with ui.column().classes('w-1/3 min-w-[300px] h-full gap-4'):
                 with ui.card().classes('w-full h-full p-0 shadow-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col'):
                     with ui.row().classes('w-full p-4 border-b border-gray-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 justify-between items-center'):
-                        ui.label("Configuration View").classes('font-bold text-slate-700 dark:text-slate-300 tracking-wide uppercase text-sm')
-                        ui.button(icon='unfold_more', on_click=lambda: self.tree.expand() if self.tree else None).props('flat round size=sm color=slate-500').tooltip('Expand All')
-                    
-                    with ui.scroll_area().classes('w-full flex-grow p-4'):
-                        self.tree = ui.tree([self.build_tree_nodes(self.state.config_data)], label_key='label', on_select=lambda e: (self.selected_path.update({"value": e.value}), self.refresh_tree_and_editor()) if e.value else None).classes('w-full custom-tree font-medium text-slate-700 dark:text-slate-300')
-                        self.tree._props['selected'] = self.selected_path["value"]
-                        self.tree.props('control-color=primary node-key=id')
-                        self.tree.expand()
+                        ui.label("Configuration Tree").classes('font-bold text-slate-700 dark:text-slate-300 tracking-wide uppercase text-sm')
+                        with ui.row().classes('gap-1 items-center'):
+                            tree_search = ui.input('Search...').classes('w-48').props('dense rounded outlined clearable')
+                            ui.button(icon='unfold_less', on_click=lambda: self.tree.collapse() if self.tree else None).props('flat round size=sm').classes('text-slate-500').tooltip('Collapse All')
+                            ui.button(icon='unfold_more', on_click=lambda: self.tree.expand() if self.tree else None).props('flat round size=sm').classes('text-slate-500').tooltip('Expand All')
                         
-            with ui.column().classes('w-2/3 flex-grow h-full gap-4'):
-                with ui.card().classes('w-full h-3/4 shadow-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col p-6'):
+                    with ui.scroll_area().classes('w-full bg-slate-50 dark:bg-slate-900 flex-grow p-4 pt-2'):
+                        self.tree = ui.tree([self.build_tree_nodes(self.state.config_data)], label_key='label', on_select=lambda e: (self.selected_path.update({"value": e.value}), self.refresh_tree_and_editor()) if e.value else None).classes('w-full custom-tree font-medium text-slate-700 dark:text-slate-300')
+                        if self.tree:
+                            self.tree._props['selected'] = self.selected_path["value"]
+                            self.tree.props('control-color=primary node-key=id')
+                            tree_search.on_value_change(lambda e: (self.tree._props.update({'filter': e.value}), self.tree.update()) if self.tree else None)
+                            self.tree.expand()
+                            
+                            def handle_expanded(e):
+                                if getattr(e, 'args', None) is not None:
+                                    old_expanded = set(self.tree._props.get('expanded', []))
+                                    new_expanded = set(e.args)
+                                    added = new_expanded - old_expanded
+                                    if added:
+                                        target = list(added)[0]
+                                        self.selected_path["value"] = target
+                                        self.refresh_tree_and_editor()
+                                    else:
+                                        self.tree._props['expanded'] = list(new_expanded)
+                                        self.tree.update()
+
+                            self.tree.on('update:expanded', handle_expanded)
+                        
+            with ui.column().classes('w-2/3 flex-grow bg-slate-50 dark:bg-slate-900 h-full gap-4'):
+                with ui.card().classes('w-full h-3/4 shadow-md border border-gray-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex flex-col p-6 pt-4'):
+                    ui.label("Properties Editor").classes('font-bold text-slate-700 dark:text-slate-300 tracking-wide uppercase text-sm mb-2')
                     self.editor_scroll_area = ui.scroll_area().classes('w-full flex-grow')
                 
                 with ui.card().classes('w-full h-1/4 shadow-md border border-gray-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4'):

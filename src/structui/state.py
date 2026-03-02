@@ -15,6 +15,7 @@ class AppState:
         self.config_data: Dict[str, Any] = {}
         self.history: List[Dict[str, Any]] = []
         self.history_index: int = -1
+        self.last_saved_index: int = -1
         self.is_dirty: bool = False
         
         self.load_files()
@@ -44,6 +45,7 @@ class AppState:
             
         self.history = [copy.deepcopy(self.config_data)]
         self.history_index = 0
+        self.last_saved_index = 0
         self.is_dirty = False
 
     def commit(self):
@@ -53,16 +55,20 @@ class AppState:
         
         if len(self.history) > 100:
             self.history.pop(0)
+            if self.last_saved_index > 0:
+                self.last_saved_index -= 1
+            elif self.last_saved_index == 0:
+                self.last_saved_index = -1
         else:
             self.history_index += 1
-        self.is_dirty = True
+        self.is_dirty = (self.history_index != self.last_saved_index)
 
     def undo(self) -> bool:
         """Reverts local modification to a previous epoch."""
         if self.history_index > 0:
             self.history_index -= 1
             self.config_data = copy.deepcopy(self.history[self.history_index])
-            self.is_dirty = True
+            self.is_dirty = (self.history_index != self.last_saved_index)
             return True
         return False
 
@@ -71,7 +77,7 @@ class AppState:
         if self.history_index < len(self.history) - 1:
             self.history_index += 1
             self.config_data = copy.deepcopy(self.history[self.history_index])
-            self.is_dirty = True
+            self.is_dirty = (self.history_index != self.last_saved_index)
             return True
         return False
 
@@ -103,7 +109,7 @@ class AppState:
             curr[property_key] = new_value
         elif isinstance(curr, list):
             curr[int(property_key)] = new_value
-        self.is_dirty = True
+        self.is_dirty = (self.history_index != self.last_saved_index)
 
     def save_all_to_disk(self):
         """Dispatches save operations to agnostic parsers and handles raw deletion tracking."""
@@ -128,4 +134,5 @@ class AppState:
                 except Exception as e:
                     print(f"Error removing {f}: {e}")
                     
+        self.last_saved_index = self.history_index
         self.is_dirty = False
