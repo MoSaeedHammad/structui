@@ -123,3 +123,39 @@ def test_app_state_history_limit(mock_data_dir, mock_schema_manager):
         
     assert len(state.history) == 100
     assert state.history_index == 99
+
+def test_app_state_schema_exclusion(mock_data_dir, mock_schema_manager):
+    # Coverage for line 34: skip loading the schema file itself
+    schema_path = os.path.join(mock_data_dir, "schema.yaml")
+    with open(schema_path, "w") as f:
+        f.write("test: true")
+    
+    mock_schema_manager.schema_filepath = schema_path
+    state = AppState(mock_data_dir, mock_schema_manager)
+    assert "schema.yaml" not in state.config_data
+
+def test_app_state_history_pop_saved_index(mock_data_dir, mock_schema_manager):
+    # Coverage for line 60: decrementing last_saved_index when history pops
+    state = AppState(mock_data_dir, mock_schema_manager)
+    state.last_saved_index = 5
+    
+    for i in range(105):
+        state.set_data_by_path("root/config.yaml", "setting1", f"v{i}")
+        state.commit()
+        
+    # last_saved_index gets shifted down to -1 as those states fall off the tail
+    assert state.last_saved_index == -1
+
+def test_app_state_remove_error(mock_data_dir, mock_schema_manager, capsys):
+    # Coverage for lines 133-136: os.remove exception handling during save
+    state = AppState(mock_data_dir, mock_schema_manager)
+    # create a dummy file to be removed
+    dummy = os.path.join(mock_data_dir, "dummy.yaml")
+    with open(dummy, "w") as f:
+        f.write("a: 1")
+    
+    with patch('os.remove', side_effect=Exception("Permission Denied")):
+        state.save_all_to_disk()
+    
+    captured = capsys.readouterr()
+    assert "Error removing dummy.yaml" in captured.out

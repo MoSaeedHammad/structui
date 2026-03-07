@@ -383,10 +383,13 @@ class StructUI:
                     result = await LocalFilePicker(directory=self.state.data_dir, dirs_only=True, upper_limit=None, show_hidden_files=True)
                     if result:
                         self.state.data_dir = result[0]
-                        self.state.load_files()
-                        self.selected_path["value"] = "root"
-                        self.refresh_tree_and_editor()
-                        ui.notify(f'Loaded Configs from {self.state.data_dir}', color='blue')
+                        try:
+                            self.state.load_files()
+                            self.selected_path["value"] = "root"
+                            self.refresh_tree_and_editor()
+                            ui.notify(f'Loaded Configs from {self.state.data_dir}', color='blue')
+                        except Exception as e:
+                            ui.notify(f"Load Error: {str(e)}", type="negative", position="top", timeout=8000)
 
                 async def pick_schema_file():
                     result = await LocalFilePicker(directory=os.path.dirname(os.path.abspath(self.schema_manager.schema_filepath)), multiple=False, upper_limit=None, show_hidden_files=True)

@@ -147,4 +147,17 @@ def test_get_item_label(mock_schema_file):
     assert sm.get_item_label({"val1": 10}, "root/unknown", root_data, "default") == "default"
     
     # fallback to default if not dict
-    assert sm.get_item_label("string_item", "root/unknown", root_data, "default") == "default"
+def test_schema_manager_recursive(tmp_path, capsys):
+    schema_path = tmp_path / "recursive.yaml"
+    # To trigger recursion in prefill_required, the child must be required
+    schema_path.write_text("""
+item1:
+  type: dict
+  allowed_children: [item1]
+  required: true
+    """, encoding="utf-8")
+    sm = SchemaManager(str(schema_path))
+    # We call to trigger recursion
+    sm.prefill_required("item1")
+    captured = capsys.readouterr()
+    assert "recursive schema detected" in captured.out

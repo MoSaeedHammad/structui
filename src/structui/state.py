@@ -25,7 +25,8 @@ class AppState:
         self.config_data = {}
         files = glob.glob(os.path.join(self.data_dir, "*.yaml")) + \
                 glob.glob(os.path.join(self.data_dir, "*.yml")) + \
-                glob.glob(os.path.join(self.data_dir, "*.json"))
+                glob.glob(os.path.join(self.data_dir, "*.json")) + \
+                glob.glob(os.path.join(self.data_dir, "*.xml"))
                 
         for filepath in files:
             filename = os.path.basename(filepath)
@@ -33,7 +34,7 @@ class AppState:
                 continue
                 
             parser = get_parser(filepath)
-            data = parser.load(filepath)
+            data = parser.load(filepath, schema=self.schema_manager.schema_meta)
             
             if data is None:
                 # Fill structure based on declared schema
@@ -116,7 +117,7 @@ class AppState:
         schema_base = os.path.basename(self.schema_manager.schema_filepath)
         existing_logical_files = [
             f for f in os.listdir(self.data_dir) 
-            if f.endswith(('.yaml', '.yml', '.json')) and f != schema_base
+            if f.endswith(('.yaml', '.yml', '.json', '.xml')) and f != schema_base
         ]
         
         for filename, data in self.config_data.items():

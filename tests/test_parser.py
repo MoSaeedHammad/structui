@@ -55,3 +55,39 @@ def test_json_parser_load_error(tmp_path, capsys):
     assert loaded is None
     captured = capsys.readouterr()
     assert "JSON Load Error" in captured.out
+
+def test_xml_parser(tmp_path):
+    parser = get_parser("config.xml")
+    assert type(parser).__name__ == "XmlParser"
+    test_file = tmp_path / "test.xml"
+    data = {"config": {"key": "value"}}
+    
+    # Test Save
+    parser.save(str(test_file), data)
+    assert test_file.exists()
+    
+    # Test Load
+    loaded = parser.load(str(test_file))
+    assert loaded == data
+
+def test_xml_parser_load_error(tmp_path):
+    parser = get_parser("config.xml")
+    test_file = tmp_path / "invalid.xml"
+    test_file.write_text("<invalid><xml>", encoding="utf-8")
+    
+    with pytest.raises(Exception) as e:
+        parser.load(str(test_file))
+    assert "Malformed XML" in str(e.value)
+
+def test_abstract_parser_coverage():
+    from structui.parser import DataParser
+    
+    class DummyParser(DataParser):
+        def load(self, filepath, schema=None):
+            return super().load(filepath, schema)
+        def save(self, filepath, data):
+            return super().save(filepath, data)
+            
+    p = DummyParser()
+    assert p.load("file.txt") is None
+    assert p.save("file.txt", {}) is None

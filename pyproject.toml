@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "structui"
-version = "0.1.1"
+version = "0.2.0"
 description = "A format-agnostic, schema-driven, hierarchical configuration UI."
 readme = "README.md"
 authors = [

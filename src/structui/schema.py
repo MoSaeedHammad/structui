@@ -30,8 +30,14 @@ class SchemaManager:
         if type_str == 'list': return []
         return ""
 
-    def prefill_required(self, schema_key: str) -> Dict[str, Any]:
+    def prefill_required(self, schema_key: str, visited=None) -> Dict[str, Any]:
         """Scans the schema and creates a dictionary containing all REQUIRED child properties pre-filled."""
+        if visited is None: visited = set()
+        if schema_key in visited:
+            print(f"Warning: recursive schema detected for {schema_key}")
+            return {}
+        visited.add(schema_key)
+        
         new_val = {}
         allowed = self.get_meta(schema_key).get('allowed_children', [])
         for child_key in allowed:
@@ -39,7 +45,7 @@ class SchemaManager:
             if child_meta.get('required', False):
                 child_type = child_meta.get('type', 'string')
                 if child_type in ['container', 'dict']:
-                    new_val[child_key] = self.prefill_required(child_key)
+                    new_val[child_key] = self.prefill_required(child_key, visited=visited.copy())
                 else:
                     new_val[child_key] = self.get_default_val_for_type(child_type)
         return new_val
