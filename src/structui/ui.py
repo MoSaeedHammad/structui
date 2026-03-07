@@ -9,7 +9,7 @@ from .file_picker import LocalFilePicker
 class StructUI:
     """The central view abstraction for managing the hierarchical NiceGUI visualization."""
 
-    def __init__(self, state: AppState, schema_manager: SchemaManager):
+    def __init__(self, state: AppState, schema_manager: SchemaManager, dark_mode: bool = None):
         self.state = state
         self.schema_manager = schema_manager
         
@@ -18,6 +18,7 @@ class StructUI:
         self.editor_scroll_area = None
         self.footer_pane = None
         self.dark_mode = None
+        self.initial_dark_mode = dark_mode
         self.save_btn = None
 
     def get_allowed_options(self, path: str, data_node: Any) -> List[Dict[str, str]]:
@@ -352,7 +353,7 @@ class StructUI:
                                 ui.label(str(label)).classes('font-bold text-slate-700 dark:text-slate-300 truncate w-32')
 
     def render(self):
-        self.dark_mode = ui.dark_mode()
+        self.dark_mode = ui.dark_mode(value=self.initial_dark_mode)
         ui.add_head_html('''
             <style>
                 body.body--light { background-color: #f8fafc; }
@@ -368,6 +369,7 @@ class StructUI:
         
         with ui.header().classes('bg-slate-800 text-white shadow-md p-4 flex justify-between items-center'):
             with ui.row().classes('items-center gap-3 w-1/2 overflow-hidden'):
+                ui.button(icon='home', color='primary', on_click=lambda: ui.navigate.to('/')).props('round flex-shrink-0').tooltip('Return to Home')
                 ui.icon('settings_input_component', size='md')
                 ui.label('StructUI Editor').classes('text-xl font-bold tracking-wide')
                 ui.badge().classes('text-xs ml-4 py-1 px-2 font-mono truncate max-w-sm').bind_text_from(self.state, 'data_dir', backward=lambda d: f"Workspace: {d}" if d else "No Workspace Loaded")
@@ -417,7 +419,7 @@ class StructUI:
         
         with ui.row().classes('w-full h-[calc(100vh-80px)] overflow-hidden p-4 gap-4 flex-nowrap'):
             with ui.column().classes('w-1/3 min-w-[300px] h-full gap-4'):
-                with ui.card().classes('w-full h-full p-0 shadow-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col'):
+                with ui.card().classes('w-full h-full p-0 shadow-md border border-gray-200 dark:border-slate-700 dark:bg-slate-800 flex flex-col'):
                     with ui.row().classes('w-full p-4 border-b border-gray-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 justify-between items-center'):
                         ui.label("Configuration Tree").classes('font-bold text-slate-700 dark:text-slate-300 tracking-wide uppercase text-sm')
                         with ui.row().classes('gap-1 items-center'):

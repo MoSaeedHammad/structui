@@ -23,4 +23,7 @@ The core engine **MUST** remain generic.
 ### 4. Agent-Friendly CLI
 The tool **MUST** support headless or CLI-driven execution alongside the GUI.
 - It must be fully interoperable with external AI orchestration workflows and agentic pipelines (e.g., OpenClaw integrations).
-- Core actions (loading, validating, saving) must be accessible via programmatic APIs and CLI entrypoints.
+    - Core actions (loading, validating, saving) must be accessible via programmatic APIs and CLI entrypoints.
+
+### 5. Versioning
+The `pyproject.toml` version **MUST** be updated each time a new change or feature is requested. This ensures that every contribution is explicitly tracked as a separate release version.
