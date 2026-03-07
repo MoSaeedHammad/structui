@@ -109,3 +109,46 @@ def test_dict_to_xml_attributes():
     expected_xml = '<config><setting2 attr="test">value2</setting2></config>'
     assert dict_to_xml(data) == expected_xml
 
+def test_load_xml_native_list():
+    # Cover line 41 (len(items) > 1 -> is_list = True without schema)
+    xml_content = '''<?xml version="1.0"?>
+    <config>
+        <items>
+            <item>1</item>
+            <item>2</item>
+        </items>
+    </config>
+    '''
+    expected = {
+        "config": {
+            "items": {
+                "item": ["1", "2"]
+            }
+        }
+    }
+    assert load_xml(xml_content) == expected
+
+def test_dict_to_xml_top_level_list():
+    # Cover line 80-81 (elif isinstance(data, list) in _build_xml)
+    data = ["item1", "item2"]
+    expected_xml = "<root>item2</root>" 
+    assert dict_to_xml(data, root_tag="root") == expected_xml
+    
+def test_dict_to_xml_multiple_roots():
+    # Cover line 95 (multiple root keys fall back to wrapping with root_tag)
+    data = {"key1": "val1", "key2": "val2"}
+    expected_xml = "<root><key1>val1</key1><key2>val2</key2></root>"
+    assert dict_to_xml(data, root_tag="root") == expected_xml
+
+def test_save_xml(tmp_path):
+    # Cover lines 106-108 (save_xml file writing)
+    data = {"config": {"setting": "1"}}
+    filepath = tmp_path / "test.xml"
+    save_xml(data, str(filepath))
+    
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    expected_content = '<?xml version="1.0" encoding="utf-8"?>\n<config><setting>1</setting></config>'
+    assert content == expected_content
+
