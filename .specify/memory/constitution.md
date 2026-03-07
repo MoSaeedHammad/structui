@@ -1,3 +1,13 @@
+<!--
+Sync Impact Report:
+- Version change: Unversioned -> 1.1.0
+- Added sections:
+  - Principle 6: Mandatory Testing & Coverage
+  - Principle 7: Continuous Documentation
+  - Governance
+- Templates requiring updates:
+  - .specify/templates/tasks-template.md (✅ updated)
+-->
 # The StructUI Constitution
 
 ## System Context & Role
@@ -27,3 +37,18 @@ The tool **MUST** support headless or CLI-driven execution alongside the GUI.
 
 ### 5. Versioning
 The `pyproject.toml` version **MUST** be updated each time a new change or feature is requested. This ensures that every contribution is explicitly tracked as a separate release version.
+
+### 6. Mandatory Testing & Coverage
+Pytest is mandatory. Every new feature or implementation **MUST** maintain a minimum of 90% test coverage.
+- Code changes without corresponding tests or dropping coverage below the threshold are rejected.
+
+### 7. Continuous Documentation
+Auto update for the documentations and GitHub page content **MUST** be performed for each change.
+- Every functional change must be accompanied by relevant updates to system documentation to ensure accuracy and freshness.
+
+## Governance
+This Constitution supersedes all other practices and architectural decisions.
+- All PRs and code reviews must verify compliance with the stated principles.
+- Amendments to this document require a structured review and an update to the version header.
+
+**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): Original adoption date unknown | **Last Amended**: 2026-03-07

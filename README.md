@@ -6,7 +6,7 @@ The architecture is explicitly decoupled, making it readily extensible to strict
 
 ## Features
 
-- **Pillar A: Format-Agnostic Parsers:** cleanly separate UI generation from underlying data formats. Out-of-the-box support for YAML and JSON, with abstract base classes easily extensible to XML or CSV.
+- **Pillar A: Format-Agnostic Parsers:** cleanly separate UI generation from underlying data formats. Out-of-the-box support for YAML, JSON, and XML (including schema-driven arrays and attributes), with abstract base classes extensible to CSV and others.
 - **Pillar B: Hierarchical UI:** Dynamic tree-based rendering with full support for multidimensional containers, dynamic polymorphic list additions, and node mapping. Powered natively by NiceGUI.
 - **Pillar C: Data Validity:** Enforces schema metadata strictly at the UI layer. Missing fields gracefully populate via defaults, required flags trigger locking, and nested typings are continuously evaluated.
 - **Pillar D: Extensibility & Programmatic Control:** Decomposed core logic (App, Parser, State, Schema, UI) allowing external tools and wrappers (e.g. CLI, Agent Workflows) to invoke the editor or inject properties safely.
