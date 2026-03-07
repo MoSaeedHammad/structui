@@ -14,3 +14,6 @@ build/
 *.pyc
 .venv/
 venv/
+.coverage
+coverage.xml
+pytest_*.txt
