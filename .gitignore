@@ -19,3 +19,4 @@ coverage.xml
 pytest_*.txt
 coverage_report*.txt
 *errors.txt
+*_out.txt
