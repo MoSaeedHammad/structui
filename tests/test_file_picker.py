@@ -32,6 +32,10 @@ def test_file_picker_init(tmp_path):
     assert str(picker.path) == str(tmp_path.resolve())
     assert picker.show_hidden_files is True
 
+    # Test upper_limit=None
+    picker_no_limit = LocalFilePicker(directory=str(tmp_path), upper_limit=None)
+    assert picker_no_limit.upper_limit is None
+
 def test_file_picker_update_grid(tmp_path):
     (tmp_path / "file1.txt").touch()
     (tmp_path / "dir1").mkdir()
@@ -93,3 +97,24 @@ async def test_file_picker_handle_ok(tmp_path):
     picker.grid.get_selected_rows = mock_get_rows_empty
     await picker._handle_ok()
     picker.submit.assert_called_with([str(picker.path)])
+    
+    # Test TimeoutError
+    picker.dirs_only = False
+    picker.submit.reset_mock()
+    async def mock_timeout(): raise TimeoutError()
+    picker.grid.get_selected_rows = mock_timeout
+    
+    with patch.object(mock_nicegui.ui, 'notify') as mock_notify:
+        await picker._handle_ok()
+        mock_notify.assert_called_with('No file selected.')
+        picker.submit.assert_not_called()
+
+def test_file_picker_update_drive(tmp_path):
+    picker = LocalFilePicker(directory=str(tmp_path))
+    picker.grid = MagicMock()
+    picker.drives_toggle = MagicMock()
+    picker.drives_toggle.value = str(tmp_path)
+    picker.update_grid = MagicMock()
+    picker.update_drive()
+    picker.update_grid.assert_called_once()
+    assert str(picker.path) == str(tmp_path)
