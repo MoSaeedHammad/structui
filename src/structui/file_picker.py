@@ -9,7 +9,7 @@ class LocalFilePicker(ui.dialog):
 
     def __init__(self, directory: str, *,
                  upper_limit: Optional[str] = ..., multiple: bool = False, show_hidden_files: bool = False,
-                 dirs_only: bool = False) -> None:
+                 dirs_only: bool = False, allowed_extensions: Optional[list] = None) -> None:
         """Local File Picker
 
         This is a simple file picker that allows you to select a file from the local filesystem where NiceGUI is running.
@@ -29,6 +29,7 @@ class LocalFilePicker(ui.dialog):
             self.upper_limit = Path(directory if upper_limit == ... else upper_limit).expanduser().resolve()
         self.show_hidden_files = show_hidden_files
         self.dirs_only = dirs_only
+        self.allowed_extensions = allowed_extensions
 
         with self, ui.card():
             self.add_drives_toggle()
@@ -58,6 +59,10 @@ class LocalFilePicker(ui.dialog):
         if self.dirs_only:
             paths = [p for p in paths if p.is_dir()]
         paths.sort(key=lambda p: p.name.lower())
+        if self.allowed_extensions and not self.dirs_only:
+            allowed_exts = [ext.lower() if ext.startswith('.') else f'.{ext.lower()}' for ext in self.allowed_extensions]
+            paths = [p for p in paths if p.is_dir() or p.suffix.lower() in allowed_exts]
+
         paths.sort(key=lambda p: not p.is_dir())
 
         self.grid.options['rowData'] = [
