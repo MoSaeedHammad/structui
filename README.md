@@ -39,3 +39,17 @@ Launch the editor in the current directory against your local configuration file
 ```bash
 structui --dir . --schema .structui_schema.yaml --port 8080
 ```
+
+## Testing
+
+To run the test suite and verify code coverage, first install the necessary development dependencies:
+
+```bash
+pip install -e . pytest pytest-cov pytest-asyncio pyyaml nicegui
+```
+
+Then, run `pytest` with coverage reporting:
+
+```bash
+PYTHONPATH=src python3 -m pytest tests/ --cov=structui --cov-report=term-missing
+```

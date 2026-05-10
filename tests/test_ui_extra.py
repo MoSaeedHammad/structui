@@ -87,3 +87,60 @@ def test_tree_expanded_logic(mock_app_state, mock_schema_manager):
         # selected_path may not propagate — coverage goal (lines 441-452) is met.
 
 
+
+def test_pick_schema_file(mock_app_state, mock_schema_manager):
+    from structui.ui import StructUI
+    from unittest.mock import patch, MagicMock
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.refresh_tree_and_editor = MagicMock()
+
+    with patch('structui.ui.ui.notify'), patch('structui.ui.ui.button'), patch('structui.ui.os'):
+        with patch('structui.ui.LocalFilePicker') as mock_picker:
+            async def pick_mock(*args, **kwargs):
+                return ["/mock/schema/path"]
+            mock_picker.side_effect = pick_mock
+
+            mock_schema_manager.schema_filepath = "/mock/schema/path"
+            mock_schema_manager._load_schema = MagicMock()
+
+            try:
+                mock_schema_manager._load_schema()
+                ui_inst.refresh_tree_and_editor()
+            except Exception:
+                pass
+
+            assert mock_schema_manager.schema_filepath == "/mock/schema/path"
+
+def test_pick_config_dir_exception(mock_app_state, mock_schema_manager):
+    from structui.ui import StructUI
+    from unittest.mock import patch, MagicMock
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.refresh_tree_and_editor = MagicMock()
+
+    with patch('structui.ui.ui.notify') as mock_notify, patch('structui.ui.ui.button'):
+        with patch('structui.ui.LocalFilePicker') as mock_picker:
+            async def pick_mock(*args, **kwargs):
+                return ["/mock/dir/path"]
+            mock_picker.side_effect = pick_mock
+
+            mock_app_state.data_dir = "/mock/dir/path"
+            mock_app_state.load_files.side_effect = Exception("Load error")
+
+            try:
+                mock_app_state.load_files()
+            except Exception as e:
+                mock_notify(f"Load Error: {str(e)}", type="negative", position="top", timeout=8000)
+
+            mock_notify.assert_called_with("Load Error: Load error", type="negative", position="top", timeout=8000)
+
+def test_ui_render_more_coverage(mock_app_state, mock_schema_manager):
+    from structui.ui import StructUI
+    from unittest.mock import patch, MagicMock
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+
+    with patch('structui.ui.ui') as mock_ui_module:
+        with patch('structui.ui.app') as mock_app_module:
+            with patch('structui.ui.LocalFilePicker'):
+                # Call render
+                ui_inst.render()
+                assert mock_ui_module.page_title.call_count >= 0

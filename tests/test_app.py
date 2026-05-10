@@ -6,23 +6,21 @@ def test_run_app():
     with patch('structui.app.SchemaManager') as mock_schema, \
          patch('structui.app.AppState') as mock_state, \
          patch('structui.app.StructUI') as mock_ui, \
-         patch('structui.app.ui.run') as mock_ui_run, \
-         patch('structui.app.ui.page'):
+         patch('structui.app.ui') as mock_nicegui_ui:
         
         run_app(data_dir="test_dir", schema_filepath="test_schema.yaml", port=8081, dark_mode=True)
         
         mock_schema.assert_called_once_with("test_schema.yaml")
         mock_state.assert_called_once_with("test_dir", mock_schema.return_value)
         mock_ui.assert_called_once_with(mock_state.return_value, mock_schema.return_value, True)
-        mock_ui_run.assert_called_once_with(port=8081, title="StructUI Editor", reload=False)
+        mock_nicegui_ui.run.assert_called_once_with(port=8081, title="StructUI Editor", reload=False)
 
 def test_run_app_with_exception():
     with patch('structui.app.SchemaManager') as mock_schema, \
          patch('structui.app.AppState', side_effect=Exception("Initialization Error")) as mock_state, \
          patch('structui.app.AppState') as mock_state_fallback, \
          patch('structui.app.StructUI') as mock_ui, \
-         patch('structui.app.ui.run') as mock_ui_run, \
-         patch('structui.app.ui.page'):
+         patch('structui.app.ui') as mock_nicegui_ui:
         
         # We need to make the fallback state creation work
         fallback_inst = MagicMock()
@@ -39,34 +37,30 @@ def test_run_app_with_exception():
         assert fallback_inst.config_data == {}
 
 def test_run_app_main_page_rendering():
-    # Test lines 21-23: calling the rendered main_page directly
     with patch('structui.app.SchemaManager'), \
          patch('structui.app.StructUI') as mock_ui, \
-         patch('structui.app.ui.run'):
+         patch('structui.app.ui') as mock_nicegui_ui:
          
-        mock_page_decorator = MagicMock()
-        with patch('structui.app.ui.page', return_value=mock_page_decorator) as mock_page:
-            
-            # This captures the decorated main_page function
-            def mock_decorator_impl(func):
+        # This captures the decorated main_page function
+        def mock_page_decorator(path):
+            def decorator(func):
+                # Call the function directly to test its internal logic
                 func()
                 return func
-                
-            mock_page.return_value = mock_decorator_impl
+            return decorator
             
-            # We must be careful not to trigger actual NiceGUI framework globals
-            import structui.app
-            mock_notify = MagicMock()
-            mock_fallback = MagicMock()
+        mock_nicegui_ui.page.side_effect = mock_page_decorator
+
+        import structui.app
+        mock_fallback = MagicMock()
+
+        with patch.object(structui.app, 'AppState', side_effect=[Exception("Boot Error"), mock_fallback]):
+            run_app()
             
-            with patch.object(structui.app.ui, 'notify', mock_notify), \
-                 patch.object(structui.app, 'AppState', side_effect=[Exception("Boot Error"), mock_fallback]):
-                run_app()
-                
-                # Check render was called
-                mock_ui.return_value.render.assert_called_once()
-                # Check notify was called with the error
-                mock_notify.assert_called_once()
-                args, kwargs = mock_notify.call_args
-                assert "Boot Error" in args[0]
-                assert kwargs["type"] == "negative"
+            # Check render was called
+            mock_ui.return_value.render.assert_called_once()
+            # Check notify was called with the error
+            mock_nicegui_ui.notify.assert_called_once()
+            args, kwargs = mock_nicegui_ui.notify.call_args
+            assert "Boot Error" in args[0]
+            assert kwargs["type"] == "negative"
