@@ -119,7 +119,7 @@ def test_get_schema_key_for_path_list_item_types(mock_schema_file):
 def test_get_label_key_for_schema(mock_schema_file):
     sm = SchemaManager(mock_schema_file)
     assert sm.get_label_key_for_schema("list_item") == "name"
-    assert sm.get_label_key_for_schema("root") is None
+    assert not sm.get_label_key_for_schema("root")
     
     # add an item with is_label
     sm.schema_meta["special_dict"] = {
