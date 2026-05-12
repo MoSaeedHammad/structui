@@ -39,3 +39,15 @@ Launch the editor in the current directory against your local configuration file
 ```bash
 structui --dir . --schema .structui_schema.yaml --port 8080
 ```
+
+
+## Testing
+
+StructUI uses `pytest` for testing. To run the full test suite and verify code coverage:
+
+```bash
+pip install -e .[dev]  # Install development dependencies
+PYTHONPATH=src python3 -m pytest tests/ --cov=structui --cov-report=term-missing
+```
+
+The test suite includes comprehensive scenarios covering the configuration engine, format-agnostic parsers, state management, and the dynamic UI generation via NiceGUI. The mocking strategy for NiceGUI components specifically uses full module patching (`patch('structui.app.ui')`) to correctly handle lazy-loaded proxy objects without encountering `ModuleNotFoundError` regressions.
