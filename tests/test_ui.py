@@ -329,15 +329,18 @@ def test_ui_more_coverage(mock_app_state, mock_schema_manager):
     data_dict = {}
     mock_app_state.get_data_by_path.return_value = data_dict
     
-    mock_schema_manager.get_meta.return_value = {"type": "bool"}
+    mock_schema_manager.get_meta.return_value = {"type": "boolean"}
+    mock_schema_manager.get_default_val_for_type.return_value = False
     ui_inst.handle_add_node("root", {"type": "dict_key", "key": "b"})
     assert data_dict["b"] is False
     
-    mock_schema_manager.get_meta.return_value = {"type": "int"}
+    mock_schema_manager.get_meta.return_value = {"type": "integer"}
+    mock_schema_manager.get_default_val_for_type.return_value = 0
     ui_inst.handle_add_node("root", {"type": "dict_key", "key": "i"})
     assert data_dict["i"] == 0
     
     mock_schema_manager.get_meta.return_value = {"type": "other"}
+    mock_schema_manager.get_default_val_for_type.return_value = ""
     ui_inst.handle_add_node("root", {"type": "dict_key", "key": "s"})
     assert data_dict["s"] == ""
 
