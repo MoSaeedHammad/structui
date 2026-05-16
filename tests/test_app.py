@@ -37,19 +37,24 @@ def test_run_app_main_page_rendering():
          patch('structui.app.StructUI') as mock_ui, \
          patch('structui.app.ui') as mock_ui_module:
          
+        mock_page_decorator = MagicMock()
+        # This captures the decorated main_page function
         def mock_decorator_impl(func):
             func()
             return func
             
         mock_ui_module.page.return_value = mock_decorator_impl
 
+        # We must be careful not to trigger actual NiceGUI framework globals
         import structui.app
         mock_fallback = MagicMock()
 
         with patch.object(structui.app, 'AppState', side_effect=[Exception("Boot Error"), mock_fallback]):
             run_app()
             
+            # Check render was called
             mock_ui.return_value.render.assert_called_once()
+            # Check notify was called with the error
             mock_ui_module.notify.assert_called_once()
             args, kwargs = mock_ui_module.notify.call_args
             assert "Boot Error" in args[0]
