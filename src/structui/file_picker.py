@@ -58,6 +58,8 @@ class LocalFilePicker(ui.dialog):
             paths = [p for p in paths if not p.name.startswith('.')]
         if self.dirs_only:
             paths = [p for p in paths if p.is_dir()]
+        elif self.allowed_extensions:
+            paths = [p for p in paths if p.is_dir() or p.suffix in self.allowed_extensions]
         paths.sort(key=lambda p: p.name.lower())
         if self.allowed_extensions and not self.dirs_only:
             allowed_exts = [ext.lower() if ext.startswith('.') else f'.{ext.lower()}' for ext in self.allowed_extensions]
