@@ -29,6 +29,7 @@ class LocalFilePicker(ui.dialog):
             self.upper_limit = Path(directory if upper_limit == ... else upper_limit).expanduser().resolve()
         self.show_hidden_files = show_hidden_files
         self.dirs_only = dirs_only
+        self.allowed_extensions = allowed_extensions
 
         with self, ui.card():
             self.add_drives_toggle()
@@ -57,7 +58,13 @@ class LocalFilePicker(ui.dialog):
             paths = [p for p in paths if not p.name.startswith('.')]
         if self.dirs_only:
             paths = [p for p in paths if p.is_dir()]
+        elif self.allowed_extensions:
+            paths = [p for p in paths if p.is_dir() or p.suffix in self.allowed_extensions]
         paths.sort(key=lambda p: p.name.lower())
+        if self.allowed_extensions and not self.dirs_only:
+            allowed_exts = [ext.lower() if ext.startswith('.') else f'.{ext.lower()}' for ext in self.allowed_extensions]
+            paths = [p for p in paths if p.is_dir() or p.suffix.lower() in allowed_exts]
+
         paths.sort(key=lambda p: not p.is_dir())
 
         self.grid.options['rowData'] = [
