@@ -167,6 +167,10 @@ class StructUI:
                     data_node[k] = []
                 elif meta_type in ['container', 'dict']:
                     data_node[k] = {}
+                elif meta_type in ['bool', 'boolean']:
+                    data_node[k] = False
+                elif meta_type in ['int', 'integer', 'number', 'float']:
+                    data_node[k] = 0
                 else:
                     data_node[k] = self.schema_manager.get_default_val_for_type(meta_type)
         elif opt_type == 'custom_dict':
@@ -271,31 +275,23 @@ class StructUI:
             props_container = ui.column().classes('w-full gap-4')
             
             def render_primitive_input(k, v, parent_node):
-                def make_on_change(prop_key=k):
+                meta = self.schema_manager.get_meta(str(k))
+
+                def make_on_change(prop_key=k, prop_type=meta.get('type')):
                     def handler(e):
                         val = e.value
-                        schema_type = self.schema_manager.get_meta(str(prop_key)).get('type', 'string')
-                        if schema_type == 'float' and val is not None:
-                            try:
-                                val = float(val)
-                            except ValueError:
-                                pass
-                        elif schema_type in ['integer', 'int'] and val is not None:
-                            try:
-                                val = int(val)
-                            except ValueError:
-                                pass
-                        elif schema_type == 'hex' and val is not None:
-                            try:
-                                val = int(str(val), 16)
-                            except ValueError:
-                                pass
+                        if prop_type == 'integer' and val is not None and val != '':
+                            try: val = int(float(val))
+                            except ValueError: pass
+                        elif prop_type in ['number', 'float'] and val is not None and val != '':
+                            try: val = float(val)
+                            except ValueError: pass
+
                         self.state.set_data_by_path(self.selected_path["value"], str(prop_key), val)
                         self.state.commit()
                         self.update_save_btn_state()
                     return handler
                     
-                meta = self.schema_manager.get_meta(str(k))
                 is_required = meta.get('required', False)
                 label_text = f"{k} *" if is_required else str(k)
                 options = meta.get('options')
@@ -307,19 +303,43 @@ class StructUI:
                         inp = ui.select(safe_options, value=v, label=label_text).classes('flex-grow').on_value_change(make_on_change())
                     elif isinstance(v, bool):
                         inp = ui.switch(text=label_text, value=v).on_value_change(make_on_change())
-                    elif self.schema_manager.get_meta(str(k)).get('type') == 'file':
-                        inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
-                        async def pick_file(inp_ref=inp, allowed=self.schema_manager.get_meta(str(k)).get('extensions')):
-                            result = await LocalFilePicker('.', allowed_extensions=allowed)
+                    elif meta.get('type') == 'file':
+                        async def pick_file(k=k, val=v):
+                            result = await LocalFilePicker(directory=self.state.data_dir, multiple=False, show_hidden_files=True, allowed_extensions=meta.get('extensions', []))
                             if result:
-                                inp_ref.value = result[0]
-                        with inp.add_slot('append'):
-                            ui.button(icon='folder', on_click=pick_file).props('flat round dense')
-                    elif self.schema_manager.get_meta(str(k)).get('type') == 'hex':
-                        display_val = hex(int(v)) if isinstance(v, int) else str(v)
-                        inp = ui.input(label=label_text, value=display_val).classes('flex-grow').on_value_change(make_on_change())
-                    elif isinstance(v, (int, float)):
+                                self.state.set_data_by_path(self.selected_path["value"], str(k), result[0])
+                                self.state.commit()
+                                self.update_save_btn_state()
+                                self.refresh_tree_and_editor()
+
+                        inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
+                        ui.button(icon='folder_open', on_click=pick_file).props('flat round size=sm').tooltip('Select File')
+                    elif isinstance(v, float) or (isinstance(v, int) and type(v) is not bool and meta.get('type') != 'integer'):
                         inp = ui.number(label=label_text, value=v).classes('flex-grow').on_value_change(make_on_change())
+                    elif isinstance(v, int) and type(v) is not bool:
+                        # For integers, we add a Dec/Hex toggle switch
+                        with ui.row().classes('flex-grow items-center gap-2 flex-nowrap'):
+                            is_hex = getattr(self, f'_is_hex_{k}_{self.selected_path["value"].replace("/", "_")}', False)
+
+                            def toggle_hex(e, key=k, path_val=self.selected_path["value"]):
+                                setattr(self, f'_is_hex_{key}_{path_val.replace("/", "_")}', e.value)
+                                self.refresh_tree_and_editor()
+
+                            hex_toggle = ui.switch('Hex', value=is_hex).on_value_change(toggle_hex)
+
+                            if is_hex:
+                                hex_val = hex(v) if isinstance(v, int) else ""
+                                def on_hex_change(e, pk=k):
+                                    try:
+                                        new_val = int(e.value, 16) if e.value else 0
+                                        self.state.set_data_by_path(self.selected_path["value"], str(pk), new_val)
+                                        self.state.commit()
+                                        self.update_save_btn_state()
+                                    except ValueError:
+                                        pass
+                                inp = ui.input(label=label_text, value=hex_val).classes('flex-grow').on_value_change(on_hex_change)
+                            else:
+                                inp = ui.number(label=label_text, value=v).classes('flex-grow').on_value_change(make_on_change())
                     else:
                         inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
                         
