@@ -6,23 +6,21 @@ def test_run_app():
     with patch('structui.app.SchemaManager') as mock_schema, \
          patch('structui.app.AppState') as mock_state, \
          patch('structui.app.StructUI') as mock_ui, \
-         patch('structui.app.ui.run') as mock_ui_run, \
-         patch('structui.app.ui.page'):
+         patch('structui.app.ui') as mock_ui_run:
         
         run_app(data_dir="test_dir", schema_filepath="test_schema.yaml", port=8081, dark_mode=True)
         
         mock_schema.assert_called_once_with("test_schema.yaml")
         mock_state.assert_called_once_with("test_dir", mock_schema.return_value)
         mock_ui.assert_called_once_with(mock_state.return_value, mock_schema.return_value, True)
-        mock_ui_run.assert_called_once_with(port=8081, title="StructUI Editor", reload=False)
+        mock_ui_run.run.assert_called_once_with(port=8081, title="StructUI Editor", reload=False)
 
 def test_run_app_with_exception():
     with patch('structui.app.SchemaManager') as mock_schema, \
          patch('structui.app.AppState', side_effect=Exception("Initialization Error")) as mock_state, \
          patch('structui.app.AppState') as mock_state_fallback, \
          patch('structui.app.StructUI') as mock_ui, \
-         patch('structui.app.ui.run') as mock_ui_run, \
-         patch('structui.app.ui.page'):
+         patch('structui.app.ui') as mock_ui_run:
         
         # We need to make the fallback state creation work
         fallback_inst = MagicMock()
@@ -42,7 +40,7 @@ def test_run_app_main_page_rendering():
     # Test lines 21-23: calling the rendered main_page directly
     with patch('structui.app.SchemaManager'), \
          patch('structui.app.StructUI') as mock_ui, \
-         patch('structui.app.ui.run'):
+         patch('structui.app.ui'):
          
         mock_page_decorator = MagicMock()
         with patch('structui.app.ui.page', return_value=mock_page_decorator) as mock_page:

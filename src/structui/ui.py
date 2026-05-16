@@ -167,12 +167,8 @@ class StructUI:
                     data_node[k] = []
                 elif meta_type in ['container', 'dict']:
                     data_node[k] = {}
-                elif meta_type == 'bool':
-                    data_node[k] = False
-                elif meta_type in ['int', 'number', 'float']:
-                    data_node[k] = 0
                 else:
-                    data_node[k] = ""
+                    data_node[k] = self.schema_manager.get_default_val_for_type(meta_type)
         elif opt_type == 'custom_dict':
             if isinstance(data_node, dict):
                 with ui.dialog() as dialog, ui.card().classes('min-w-[300px]'):
@@ -277,7 +273,24 @@ class StructUI:
             def render_primitive_input(k, v, parent_node):
                 def make_on_change(prop_key=k):
                     def handler(e):
-                        self.state.set_data_by_path(self.selected_path["value"], str(prop_key), e.value)
+                        val = e.value
+                        schema_type = self.schema_manager.get_meta(str(prop_key)).get('type', 'string')
+                        if schema_type == 'float' and val is not None:
+                            try:
+                                val = float(val)
+                            except ValueError:
+                                pass
+                        elif schema_type in ['integer', 'int'] and val is not None:
+                            try:
+                                val = int(val)
+                            except ValueError:
+                                pass
+                        elif schema_type == 'hex' and val is not None:
+                            try:
+                                val = int(str(val), 16)
+                            except ValueError:
+                                pass
+                        self.state.set_data_by_path(self.selected_path["value"], str(prop_key), val)
                         self.state.commit()
                         self.update_save_btn_state()
                     return handler
@@ -294,6 +307,17 @@ class StructUI:
                         inp = ui.select(safe_options, value=v, label=label_text).classes('flex-grow').on_value_change(make_on_change())
                     elif isinstance(v, bool):
                         inp = ui.switch(text=label_text, value=v).on_value_change(make_on_change())
+                    elif self.schema_manager.get_meta(str(k)).get('type') == 'file':
+                        inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
+                        async def pick_file(inp_ref=inp, allowed=self.schema_manager.get_meta(str(k)).get('extensions')):
+                            result = await LocalFilePicker('.', allowed_extensions=allowed)
+                            if result:
+                                inp_ref.value = result[0]
+                        with inp.add_slot('append'):
+                            ui.button(icon='folder', on_click=pick_file).props('flat round dense')
+                    elif self.schema_manager.get_meta(str(k)).get('type') == 'hex':
+                        display_val = hex(int(v)) if isinstance(v, int) else str(v)
+                        inp = ui.input(label=label_text, value=display_val).classes('flex-grow').on_value_change(make_on_change())
                     elif isinstance(v, (int, float)):
                         inp = ui.number(label=label_text, value=v).classes('flex-grow').on_value_change(make_on_change())
                     else:
