@@ -88,7 +88,7 @@ class AppState:
             return self.config_data
             
         keys = path.split('/')[1:]
-        curr = self.config_data
+        curr: Any = self.config_data
         
         try:
             for key in keys:

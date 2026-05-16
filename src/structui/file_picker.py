@@ -8,8 +8,8 @@ from nicegui import events, ui
 class LocalFilePicker(ui.dialog):
 
     def __init__(self, directory: str, *,
-                 upper_limit: Optional[str] = ..., multiple: bool = False, show_hidden_files: bool = False,
-                 dirs_only: bool = False, allowed_extensions: Optional[list] = None) -> None:
+                 upper_limit: Optional[str] = None, multiple: bool = False, show_hidden_files: bool = False,
+                 dirs_only: bool = False) -> None:
         """Local File Picker
 
         This is a simple file picker that allows you to select a file from the local filesystem where NiceGUI is running.

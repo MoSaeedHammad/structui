@@ -4,7 +4,7 @@ from structui.ui import StructUI
 from structui.state import AppState
 from structui.schema import SchemaManager
 
-def run_app(data_dir: str = ".", schema_filepath: str = ".structui_schema.yaml", port: int = 8080, dark_mode: Optional[bool] = False):
+def run_app(data_dir: str = ".", schema_filepath: str = ".structui_schema.yaml", port: int = 8080, dark_mode: bool = False):
     schema_manager = SchemaManager(schema_filepath)
     try:
         app_state = AppState(data_dir, schema_manager)

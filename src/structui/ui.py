@@ -9,17 +9,17 @@ from .file_picker import LocalFilePicker
 class StructUI:
     """The central view abstraction for managing the hierarchical NiceGUI visualization."""
 
-    def __init__(self, state: AppState, schema_manager: SchemaManager, dark_mode: bool = None):
+    def __init__(self, state: AppState, schema_manager: SchemaManager, dark_mode: bool = False):
         self.state = state
         self.schema_manager = schema_manager
         
-        self.selected_path = {"value": "root"}
-        self.tree = None
-        self.editor_scroll_area = None
-        self.footer_pane = None
-        self.dark_mode = None
+        self.selected_path: dict[str, Any] = {"value": "root"}
+        self.tree: Any = None
+        self.editor_scroll_area: Any = None
+        self.footer_pane: Any = None
+        self.dark_mode: Any = None
         self.initial_dark_mode = dark_mode
-        self.save_btn = None
+        self.save_btn: Any = None
 
     def get_allowed_options(self, path: str, data_node: Any) -> List[Dict[str, str]]:
         schema_key = self.schema_manager.get_schema_key_for_path(path, self.state.config_data)
@@ -58,8 +58,8 @@ class StructUI:
         return allowed_options
 
     def build_tree_nodes(self, data: Any, path: str = "root", name: str = "Configurations") -> Dict[str, Any]:
-        node = {'id': path, 'label': name}
-        children = []
+        node: Dict[str, Any] = {'id': path, 'label': name}
+        children: list[Dict[str, Any]] = []
         node['allowed'] = self.get_allowed_options(path, data)
         has_prims = False
         
@@ -162,7 +162,7 @@ class StructUI:
         if opt_type == 'dict_key':
             if isinstance(data_node, dict):
                 k = option.get('key')
-                meta_type = self.schema_manager.get_meta(k).get('type')
+                meta_type = self.schema_manager.get_meta(str(k)).get('type')
                 if meta_type == 'list':
                     data_node[k] = []
                 elif meta_type in ['container', 'dict']:
@@ -209,14 +209,21 @@ class StructUI:
         if not path:
             path = "root"
         self.selected_path["value"] = path
+        assert self.editor_scroll_area is not None
+
         self.editor_scroll_area.clear()
         self.update_footer(None)
 
         data_node = self.state.get_data_by_path(path)
         if data_node is None:
+            assert self.editor_scroll_area is not None
+
             with self.editor_scroll_area:
                 ui.label("This node no longer exists or was deleted.").classes('text-red-500 mt-10 text-lg font-bold')
             return 
+
+        assert self.editor_scroll_area is not None
+
 
         with self.editor_scroll_area:
             # INTERACTIVE BREADCRUMBS

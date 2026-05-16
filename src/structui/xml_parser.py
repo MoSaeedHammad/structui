@@ -18,7 +18,7 @@ def _parse_element(element: ET.Element, current_schema: Optional[Dict[str, Any]]
     if text_content:
         result["#text"] = text_content
         
-    child_groups = {}
+    child_groups: dict = {}
     for child in element:
         child_schema = None
         if current_schema and "schema" in current_schema and child.tag in current_schema["schema"]:

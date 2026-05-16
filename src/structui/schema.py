@@ -88,9 +88,9 @@ class SchemaManager:
                         current_schema_key = meta.get('list_item_type', current_schema_key)
             else:
                 current_schema_key = p
-        return current_schema_key
+        return str(current_schema_key)
 
-    def get_label_key_for_schema(self, schema_key: str) -> str:
+    def get_label_key_for_schema(self, schema_key: str) -> str | None:
         """Finds which sub-property should be dynamically used as the naming label for UI containers."""
         if schema_key and schema_key in self.schema_meta:
             meta = self.get_meta(schema_key)
@@ -99,12 +99,12 @@ class SchemaManager:
             for child in meta.get('allowed_children', []):
                 if child in self.schema_meta and self.schema_meta[child].get('is_label', False):
                     return child
-        return None
+        return ''
 
     def get_item_label(self, item_data: Any, item_path: str, root_data: Any, default_label: str) -> str:
         """Agnostically determines the display label for an object via schema rules."""
         if not isinstance(item_data, dict):
-            return default_label
+            return default_label or ''
             
         schema_key = self.get_schema_key_for_path(item_path, root_data)
         label_key = self.get_label_key_for_schema(schema_key)
@@ -120,4 +120,4 @@ class SchemaManager:
             if isinstance(v, str):
                 return v
                 
-        return default_label
+        return default_label or ''
