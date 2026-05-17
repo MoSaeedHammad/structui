@@ -32,6 +32,7 @@ def test_ui_gaps():
     ui_inst.save_btn = MagicMock()
     ui_inst.save_btn._props = {}
     ui_inst.state.is_dirty = False
+    ui_inst.draw_editor = MagicMock()
     ui_inst.update_save_btn_state()
     assert ui_inst.save_btn._props['color'] == 'primary'
     

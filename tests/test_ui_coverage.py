@@ -114,7 +114,8 @@ def test_missing_ui_lines(mock_app_state, mock_schema_manager):
          patch('structui.ui.ui.button'):
         # Just to execute line 210
         try:
-            ui_inst.draw_editor(None)
+            with patch('structui.ui.ui.label'), patch('structui.ui.ui.icon'), patch('structui.ui.ui.number'), patch('structui.ui.ui.input'):
+                ui_inst.draw_editor(None)
         except Exception:
             pass
 
@@ -149,7 +150,8 @@ def test_missing_ui_lines(mock_app_state, mock_schema_manager):
 
         mock_input.side_effect = mock_input_side_effect
 
-        ui_inst.draw_editor("root")
+        with patch('structui.ui.ui.label'), patch('structui.ui.ui.icon'), patch('structui.ui.ui.number'), patch('structui.ui.ui.input'):
+                ui_inst.draw_editor("root")
 
         if actual_handler:
             class Ev:

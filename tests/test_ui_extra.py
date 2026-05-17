@@ -33,7 +33,8 @@ def test_delete_prop_in_list(mock_app_state, mock_schema_manager):
             return MagicMock()
         mock_btn.side_effect = mock_btn_side
         
-        ui_inst.draw_editor("root/list")
+        with patch('structui.ui.ui.label'), patch('structui.ui.ui.icon'), patch('structui.ui.ui.number'), patch('structui.ui.ui.input'):
+            ui_inst.draw_editor("root/list")
         if del_cb:
             try:
                 del_cb()

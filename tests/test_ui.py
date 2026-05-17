@@ -75,6 +75,7 @@ def test_update_save_btn_state(mock_app_state, mock_schema_manager):
     ui_inst.footer_pane = MagicMock()
     
     mock_app_state.is_dirty = True
+    ui_inst.draw_editor = MagicMock()
     ui_inst.update_save_btn_state()
 
 def test_refresh_tree_and_editor(mock_app_state, mock_schema_manager):
@@ -109,7 +110,7 @@ def test_render(mock_app_state, mock_schema_manager):
          patch('structui.ui.ui.scroll_area'), \
          patch('structui.ui.ui.footer'), \
          patch('structui.ui.ui.icon'), \
-         patch('structui.ui.ui.dark_mode'):
+         patch('structui.ui.ui.dark_mode'), patch('structui.ui.ui.add_head_html'), patch('structui.ui.ui.header'), patch('structui.ui.ui.badge'):
          
          ui_inst.render()
 
@@ -356,7 +357,8 @@ def test_ui_more_coverage(mock_app_state, mock_schema_manager):
             if kwargs.get('icon') == 'delete': del_cb = kwargs.get('on_click')
             return MagicMock()
         mock_btn.side_effect = mock_btn_side
-        ui_inst.draw_editor("root/0")
+        with patch('structui.ui.ui.label'), patch('structui.ui.ui.icon'), patch('structui.ui.ui.number'), patch('structui.ui.ui.input'):
+            ui_inst.draw_editor("root/0")
         if del_cb: del_cb()
         assert len(parent_list) == 0
 
@@ -379,7 +381,8 @@ def test_delete_prop_in_list(mock_app_state, mock_schema_manager):
             return MagicMock()
         mock_btn.side_effect = mock_btn_side
         
-        ui_inst.draw_editor("root/list")
+        with patch('structui.ui.ui.label'), patch('structui.ui.ui.icon'), patch('structui.ui.ui.number'), patch('structui.ui.ui.input'):
+            ui_inst.draw_editor("root/list")
         if del_cb:
              try: del_cb()
              except: pass
