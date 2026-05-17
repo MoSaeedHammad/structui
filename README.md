@@ -45,7 +45,7 @@ structui --dir . --schema .structui_schema.yaml --port 8080
 To run the test suite and verify code coverage, first install the necessary development dependencies:
 
 ```bash
-pip install -e . pytest pytest-cov pytest-asyncio pyyaml nicegui
+pip install -e . pytest pytest-cov pytest-asyncio pytest-mock pyyaml nicegui
 ```
 
 Then, run `pytest` with coverage reporting:
@@ -53,3 +53,5 @@ Then, run `pytest` with coverage reporting:
 ```bash
 PYTHONPATH=src python3 -m pytest tests/ --cov=structui --cov-report=term-missing
 ```
+
+The test suite covers various edge cases, including UI interaction tests (using `unittest.mock`), schema validation logic, state management edge cases, file picker drive checks, and data parsing robustness. Make sure your changes do not decrease coverage below the current baseline.

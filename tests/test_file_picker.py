@@ -104,7 +104,7 @@ async def test_file_picker_handle_ok(tmp_path):
     async def mock_timeout(): raise TimeoutError()
     picker.grid.get_selected_rows = mock_timeout
     
-    with patch.object(mock_nicegui.ui, 'notify') as mock_notify:
+    with patch('structui.file_picker.ui.notify') as mock_notify:
         await picker._handle_ok()
         mock_notify.assert_called_with('No file selected.')
         picker.submit.assert_not_called()
@@ -118,3 +118,35 @@ def test_file_picker_update_drive(tmp_path):
     picker.update_drive()
     picker.update_grid.assert_called_once()
     assert str(picker.path) == str(tmp_path)
+
+def test_file_picker_add_drives_toggle(tmp_path):
+    with patch('platform.system', return_value='Windows'):
+        with patch.dict('sys.modules', {'win32api': MagicMock(GetLogicalDriveStrings=lambda: 'C:\\\000D:\\\000')}):
+            picker = LocalFilePicker(directory=str(tmp_path))
+            assert hasattr(picker, 'drives_toggle')
+
+def test_file_picker_allowed_extensions(tmp_path):
+    (tmp_path / "file1.txt").touch()
+    (tmp_path / "file2.yaml").touch()
+    (tmp_path / "file3.YAML").touch()
+    (tmp_path / "dir1").mkdir()
+
+    picker = LocalFilePicker(directory=str(tmp_path), allowed_extensions=['.yaml'])
+    picker.grid = MagicMock()
+    picker.grid.options = {}
+    picker.update_grid()
+
+    names = [row['name'] for row in picker.grid.options['rowData']]
+    # Should include dir1, file2.yaml, file3.YAML, and ..
+    assert any('file2.yaml' in n for n in names)
+    assert any('file3.YAML' in n for n in names)
+    assert any('dir1' in n for n in names)
+    assert not any('file1.txt' in n for n in names)
+
+    picker2 = LocalFilePicker(directory=str(tmp_path), allowed_extensions=['txt'])
+    picker2.grid = MagicMock()
+    picker2.grid.options = {}
+    picker2.update_grid()
+    names = [row['name'] for row in picker2.grid.options['rowData']]
+    assert any('file1.txt' in n for n in names)
+    assert not any('file2.yaml' in n for n in names)
