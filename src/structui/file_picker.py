@@ -9,7 +9,7 @@ class LocalFilePicker(ui.dialog):
 
     def __init__(self, directory: str, *,
                  upper_limit: Optional[str] = None, multiple: bool = False, show_hidden_files: bool = False,
-                 dirs_only: bool = False) -> None:
+                 dirs_only: bool = False, allowed_extensions: Optional[list[str]] = None) -> None:
         """Local File Picker
 
         This is a simple file picker that allows you to select a file from the local filesystem where NiceGUI is running.
@@ -29,13 +29,14 @@ class LocalFilePicker(ui.dialog):
             self.upper_limit = Path(directory if upper_limit == ... else upper_limit).expanduser().resolve()
         self.show_hidden_files = show_hidden_files
         self.dirs_only = dirs_only
-        self.allowed_extensions = allowed_extensions
+        self.allowed_extensions = allowed_extensions or []
 
         with self, ui.card():
             self.add_drives_toggle()
             self.grid = ui.aggrid({
                 'columnDefs': [{'field': 'name', 'headerName': 'File'}],
                 'rowSelection': 'multiple' if multiple else 'single',
+                'rowData': []
             }, html_columns=[0]).classes('w-96').on('cellDoubleClicked', self.handle_double_click)
             with ui.row().classes('w-full justify-end'):
                 ui.button('Cancel', on_click=self.close).props('outline')
