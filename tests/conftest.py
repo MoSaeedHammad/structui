@@ -1,5 +1,14 @@
+import sys
+from unittest.mock import MagicMock, patch
+
+# Force mock nicegui BEFORE any other imports load it
+mock_ui = MagicMock()
+mock_app = MagicMock()
+mock_nicegui = MagicMock(ui=mock_ui, app=mock_app)
+sys.modules['nicegui'] = mock_nicegui
+sys.modules['nicegui.events'] = MagicMock()
+
 import pytest
-from unittest.mock import MagicMock
 
 @pytest.fixture
 def mock_app_state():
