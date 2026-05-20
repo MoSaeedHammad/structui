@@ -172,7 +172,7 @@ class StructUI:
                 elif meta_type in ['int', 'integer', 'number', 'float']:
                     data_node[k] = 0
                 else:
-                    data_node[k] = self.schema_manager.get_default_val_for_type(meta_type)
+                    data_node[k] = self.schema_manager.get_default_val_for_type(str(meta_type))
         elif opt_type == 'custom_dict':
             if isinstance(data_node, dict):
                 with ui.dialog() as dialog, ui.card().classes('min-w-[300px]'):
