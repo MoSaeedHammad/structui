@@ -1,6 +1,6 @@
 import platform
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from nicegui import events, ui
 
@@ -9,7 +9,7 @@ class LocalFilePicker(ui.dialog):
 
     def __init__(self, directory: str, *,
                  upper_limit: Optional[str] = None, multiple: bool = False, show_hidden_files: bool = False,
-                 dirs_only: bool = False) -> None:
+                 dirs_only: bool = False, allowed_extensions: Optional[List[str]] = None) -> None:
         """Local File Picker
 
         This is a simple file picker that allows you to select a file from the local filesystem where NiceGUI is running.
@@ -19,6 +19,7 @@ class LocalFilePicker(ui.dialog):
         :param multiple: Whether to allow multiple files to be selected.
         :param show_hidden_files: Whether to show hidden files.
         :param dirs_only: Whether to only show directories.
+        :param allowed_extensions: Allowed file extensions (e.g. ['txt', 'yaml']).
         """
         super().__init__()
 
@@ -58,8 +59,6 @@ class LocalFilePicker(ui.dialog):
             paths = [p for p in paths if not p.name.startswith('.')]
         if self.dirs_only:
             paths = [p for p in paths if p.is_dir()]
-        elif self.allowed_extensions:
-            paths = [p for p in paths if p.is_dir() or p.suffix in self.allowed_extensions]
         paths.sort(key=lambda p: p.name.lower())
         if self.allowed_extensions and not self.dirs_only:
             allowed_exts = [ext.lower() if ext.startswith('.') else f'.{ext.lower()}' for ext in self.allowed_extensions]

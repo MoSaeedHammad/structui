@@ -17,11 +17,30 @@ class DataParser(ABC):
     def save(self, filepath: str, data: Any):
         pass
 
+class HexInt(int):
+    """Custom integer type to preserve hexadecimal representation when saving."""
+    pass
+
+def hex_representer(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:int', hex(data))
+
+yaml.add_representer(HexInt, hex_representer, Dumper=yaml.SafeDumper)
+yaml.add_representer(HexInt, hex_representer)
+
+def int_constructor(loader, node):
+    value = loader.construct_yaml_int(node)
+    scalar_value = str(node.value).strip()
+    if scalar_value.startswith('0x') or scalar_value.startswith('0X') or scalar_value.startswith('-0x') or scalar_value.startswith('-0X') or scalar_value.startswith('+0x') or scalar_value.startswith('+0X'):
+        return HexInt(value)
+    return value
+
+yaml.add_constructor('tag:yaml.org,2002:int', int_constructor, yaml.SafeLoader)
+
 class YamlParser(DataParser):
     def load(self, filepath: str, schema: Optional[Dict[str, Any]] = None) -> Any:
         try:
             with open(filepath, 'r') as f:
-                return yaml.safe_load(f)
+                return yaml.load(f, Loader=yaml.SafeLoader)
         except Exception as e:
             print(f"YAML Load Error ({filepath}): {e}")
             return None

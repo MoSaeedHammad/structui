@@ -287,12 +287,22 @@ class StructUI:
                 def make_on_change(prop_key=k, prop_type=meta.get('type')):
                     def handler(e):
                         val = e.value
+                        is_original_int = isinstance(v, int) and not isinstance(v, bool)
+                        is_original_float = isinstance(v, float)
+
                         if prop_type == 'integer' and val is not None and val != '':
                             try: val = int(float(val))
                             except ValueError: pass
                         elif prop_type in ['number', 'float'] and val is not None and val != '':
                             try: val = float(val)
                             except ValueError: pass
+                        elif prop_type is None and val is not None and val != '':
+                            if is_original_int:
+                                try: val = int(float(val))
+                                except ValueError: pass
+                            elif is_original_float:
+                                try: val = float(val)
+                                except ValueError: pass
 
                         self.state.set_data_by_path(self.selected_path["value"], str(prop_key), val)
                         self.state.commit()
@@ -330,6 +340,21 @@ class StructUI:
 
                             def toggle_hex(e, key=k, path_val=self.selected_path["value"]):
                                 setattr(self, f'_is_hex_{key}_{path_val.replace("/", "_")}', e.value)
+                                current_val = self.state.get_data_by_path(path_val)
+                                if isinstance(current_val, dict):
+                                    v_tmp = current_val.get(key)
+                                elif isinstance(current_val, list):
+                                    v_tmp = current_val[int(key)]
+                                else:
+                                    v_tmp = v
+
+                                if isinstance(v_tmp, int):
+                                    from .parser import HexInt
+                                    new_val = HexInt(v_tmp) if e.value else int(v_tmp)
+                                    self.state.set_data_by_path(path_val, str(key), new_val)
+                                    self.state.commit()
+                                    self.update_save_btn_state()
+
                                 self.refresh_tree_and_editor()
 
                             hex_toggle = ui.switch('Hex', value=is_hex).on_value_change(toggle_hex)
@@ -338,7 +363,8 @@ class StructUI:
                                 hex_val = hex(v) if isinstance(v, int) else ""
                                 def on_hex_change(e, pk=k):
                                     try:
-                                        new_val = int(e.value, 16) if e.value else 0
+                                        from .parser import HexInt
+                                        new_val = HexInt(int(e.value, 16)) if e.value else HexInt(0)
                                         self.state.set_data_by_path(self.selected_path["value"], str(pk), new_val)
                                         self.state.commit()
                                         self.update_save_btn_state()

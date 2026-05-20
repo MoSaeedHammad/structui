@@ -20,6 +20,10 @@ class SchemaManager:
 
     def get_meta(self, key: str) -> Dict[str, Any]:
         """Safely fetch metadata for a property key."""
+        if 'properties' in self.schema_meta and key in self.schema_meta['properties']:
+            return self.schema_meta['properties'][key]
+        if 'definitions' in self.schema_meta and key in self.schema_meta['definitions']:
+            return self.schema_meta['definitions'][key]
         return self.schema_meta.get(key, {})
 
     def get_default_val_for_type(self, type_str: str) -> Any:
