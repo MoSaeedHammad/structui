@@ -162,7 +162,8 @@ class StructUI:
         if opt_type == 'dict_key':
             if isinstance(data_node, dict):
                 k = option.get('key')
-                meta_type = self.schema_manager.get_meta(str(k)).get('type')
+                schema_key = self.schema_manager.get_schema_key_for_path(f"{path}/{k}", self.state.config_data)
+                meta_type = self.schema_manager.get_meta(schema_key).get('type')
                 if meta_type == 'list':
                     data_node[k] = []
                 elif meta_type in ['container', 'dict']:
@@ -282,9 +283,10 @@ class StructUI:
             props_container = ui.column().classes('w-full gap-4')
             
             def render_primitive_input(k, v, parent_node):
-                meta = self.schema_manager.get_meta(str(k))
+                schema_key = self.schema_manager.get_schema_key_for_path(f"{self.selected_path['value']}/{k}", self.state.config_data)
+                meta = self.schema_manager.get_meta(schema_key)
 
-                def make_on_change(prop_key=k, prop_type=meta.get('type')):
+                def make_on_change(prop_key=k, prop_type=meta.get('type'), orig_val=v):
                     def handler(e):
                         val = e.value
                         if prop_type == 'integer' and val is not None and val != '':
@@ -293,6 +295,14 @@ class StructUI:
                         elif prop_type in ['number', 'float'] and val is not None and val != '':
                             try: val = float(val)
                             except ValueError: pass
+                        elif not prop_type and val is not None and val != '':
+                            if isinstance(orig_val, int) and type(orig_val) is not bool:
+                                try:
+                                    if float(val).is_integer():
+                                        val = int(float(val))
+                                    else:
+                                        val = float(val)
+                                except ValueError: pass
 
                         self.state.set_data_by_path(self.selected_path["value"], str(prop_key), val)
                         self.state.commit()
@@ -335,10 +345,16 @@ class StructUI:
                             hex_toggle = ui.switch('Hex', value=is_hex).on_value_change(toggle_hex)
 
                             if is_hex:
-                                hex_val = hex(v) if isinstance(v, int) else ""
+                                hex_val = hex(v) if isinstance(v, int) else v
                                 def on_hex_change(e, pk=k):
                                     try:
-                                        new_val = int(e.value, 16) if e.value else 0
+                                        raw_val = e.value.strip() if hasattr(e.value, 'strip') else e.value
+                                        if isinstance(raw_val, str) and raw_val.startswith('0x'):
+                                            new_val = int(raw_val, 16)
+                                        elif isinstance(raw_val, str) and raw_val:
+                                            new_val = int(raw_val, 16)
+                                        else:
+                                            new_val = 0
                                         self.state.set_data_by_path(self.selected_path["value"], str(pk), new_val)
                                         self.state.commit()
                                         self.update_save_btn_state()
