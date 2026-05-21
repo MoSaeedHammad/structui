@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from .parser import get_parser
 
 class SchemaManager:
@@ -22,7 +22,7 @@ class SchemaManager:
         """Safely fetch metadata for a property key."""
         return self.schema_meta.get(key, {})
 
-    def get_default_val_for_type(self, type_str: str) -> Any:
+    def get_default_val_for_type(self, type_str: Optional[str]) -> Any:
         """Returns a sensible default value based on the given schema type."""
         if type_str == 'boolean': return False
         if type_str in ['integer', 'number', 'float']: return 0
@@ -90,7 +90,7 @@ class SchemaManager:
                 current_schema_key = p
         return str(current_schema_key)
 
-    def get_label_key_for_schema(self, schema_key: str) -> str | None:
+    def get_label_key_for_schema(self, schema_key: str) -> Optional[str]:
         """Finds which sub-property should be dynamically used as the naming label for UI containers."""
         if schema_key and schema_key in self.schema_meta:
             meta = self.get_meta(schema_key)
