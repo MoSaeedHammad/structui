@@ -346,18 +346,28 @@ def test_ui_more_coverage(mock_app_state, mock_schema_manager):
 
     # Coverage for delete current container (line 267)
     parent_list = [{"a": 1}]
-    mock_app_state.get_data_by_path.return_value = parent_list
+    def side_effect(p):
+        if p == "root": return parent_list
+        if p == "root/0": return parent_list[0]
+        return {}
+    mock_app_state.get_data_by_path.side_effect = side_effect
     ui_inst.selected_path = {"value": "root/0"}
     
     with patch('structui.ui.ui.row'), patch('structui.ui.ui.button') as mock_btn:
-        del_cb = None
+        del_cb = []
         def mock_btn_side( *args, **kwargs):
-            nonlocal del_cb
-            if kwargs.get('icon') == 'delete': del_cb = kwargs.get('on_click')
-            return MagicMock()
+            if kwargs.get('icon') == 'delete':
+                if 'on_click' in kwargs:
+                    del_cb.append(kwargs['on_click'])
+            mock_button = MagicMock()
+            return mock_button
+
         mock_btn.side_effect = mock_btn_side
         ui_inst.draw_editor("root/0")
-        if del_cb: del_cb()
+
+        if del_cb:
+            del_cb[-1]()
+
         assert len(parent_list) == 0
 
 def test_delete_prop_in_list(mock_app_state, mock_schema_manager):
