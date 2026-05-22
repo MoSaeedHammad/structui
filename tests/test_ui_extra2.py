@@ -43,7 +43,11 @@ def test_delete_current_container_isolated():
     ui_inst.refresh_tree_and_editor = MagicMock()
 
     parent_list = [{"a": 1}]
-    mock_app_state.get_data_by_path.return_value = parent_list
+    def side_effect(p):
+        if p == "root": return parent_list
+        if p == "root/0": return parent_list[0]
+        return {}
+    mock_app_state.get_data_by_path.side_effect = side_effect
     ui_inst.selected_path = {"value": "root/0"}
 
     with patch('structui.ui.ui.row'), patch('structui.ui.ui.button') as mock_btn, patch('structui.ui.ui.column'):
