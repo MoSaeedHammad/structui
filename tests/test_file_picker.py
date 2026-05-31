@@ -118,3 +118,26 @@ def test_file_picker_update_drive(tmp_path):
     picker.update_drive()
     picker.update_grid.assert_called_once()
     assert str(picker.path) == str(tmp_path)
+
+@patch('structui.file_picker.platform.system', return_value='Windows')
+def test_file_picker_windows_drives(mock_system, tmp_path):
+    with patch.dict('sys.modules', {'win32api': MagicMock(GetLogicalDriveStrings=MagicMock(return_value='C:\000D:\000'))}):
+        picker = LocalFilePicker(directory=str(tmp_path))
+        picker.grid = MagicMock()
+        picker.add_drives_toggle()
+        assert hasattr(picker, 'drives_toggle')
+
+def test_file_picker_allowed_extensions(tmp_path):
+    (tmp_path / "file1.txt").touch()
+    (tmp_path / "file2.CSV").touch()
+    (tmp_path / "file3.md").touch()
+    (tmp_path / "dir1").mkdir()
+
+    picker = LocalFilePicker(directory=str(tmp_path), allowed_extensions=['txt', '.csv'], upper_limit=None)
+    picker.grid = MagicMock()
+    picker.grid.options = {}
+    picker.update_grid()
+    names = [r['name'] for r in picker.grid.options['rowData']]
+    assert any('file1.txt' in n for n in names)
+    assert any('file2.CSV' in n for n in names)
+    assert not any('file3.md' in n for n in names)
