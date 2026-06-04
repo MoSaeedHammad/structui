@@ -61,8 +61,8 @@ class LocalFilePicker(ui.dialog):
         elif self.allowed_extensions:
             allowed_exts = [ext.lower() if ext.startswith('.') else f'.{ext.lower()}' for ext in self.allowed_extensions]
             paths = [p for p in paths if p.is_dir() or p.suffix.lower() in allowed_exts]
-        paths.sort(key=lambda p: p.name.lower())
 
+        paths.sort(key=lambda p: p.name.lower())
         paths.sort(key=lambda p: not p.is_dir())
 
         self.grid.options['rowData'] = [
