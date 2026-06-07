@@ -1,0 +1,13 @@
+--- tests/test_ui.py
++++ tests/test_ui.py
+@@ -348,7 +348,10 @@
+     def side_effect(p):
+         if p == "root": return parent_list
+         if p == "root/0": return parent_list[0]
+-        return {}
++        # For the mock parent fetch:
++        if p == "root":
++            return parent_list
++        return parent_list
+     mock_app_state.get_data_by_path.side_effect = side_effect
+     ui_inst.selected_path = {"value": "root/0"}
