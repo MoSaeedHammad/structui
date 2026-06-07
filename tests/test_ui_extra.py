@@ -144,3 +144,54 @@ def test_ui_render_more_coverage(mock_app_state, mock_schema_manager):
                 # Call render
                 ui_inst.render()
                 assert mock_ui_module.page_title.call_count >= 0
+
+
+def test_number_input_parsing(mock_app_state, mock_schema_manager):
+    from structui.ui import StructUI
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+    ui_inst.selected_path = {"value": "root"}
+    mock_app_state.get_data_by_path.return_value = {"num_prop": 3, "float_prop": 3.0}
+    mock_schema_manager.get_schema_key_for_path.return_value = "num_prop"
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+
+    with patch('structui.ui.ui.row'), patch('structui.ui.ui.column') as mock_col, \
+         patch('structui.ui.ui.input') as mock_input, \
+         patch('structui.ui.ui.label'), patch('structui.ui.ui.icon'), \
+         patch('structui.ui.ui.button'):
+        mock_input_inst = MagicMock()
+        mock_input.return_value = mock_input_inst
+        mock_input_inst.classes.return_value = mock_input_inst
+        mock_input_inst.props.return_value = mock_input_inst
+        mock_input_inst.on.return_value = mock_input_inst
+
+        ui_inst.draw_editor("root")
+
+        assert mock_input_inst.on.call_count > 0
+        call_args = mock_input_inst.on.call_args_list[0][0]
+        assert call_args[0] == "blur"
+        handler = call_args[1]
+
+        class MockSender:
+            def __init__(self, val):
+                self.value = val
+
+        class MockEvent:
+            def __init__(self, val):
+                self.sender = MockSender(val)
+
+        handler(MockEvent("4"))
+        mock_app_state.set_data_by_path.assert_called_with("root", "num_prop", 4)
+
+        handler(MockEvent("4.5"))
+        mock_app_state.set_data_by_path.assert_called_with("root", "num_prop", 4.5)
+
+        handler(MockEvent("3.0"))
+        mock_app_state.set_data_by_path.assert_called_with("root", "num_prop", 3.0)
+
+        # Verify int vs float distinction
+        calls = mock_app_state.set_data_by_path.call_args_list
+        assert type(calls[-3][0][2]) == int    # "4" -> int
+        assert type(calls[-2][0][2]) == float  # "4.5" -> float
+        assert type(calls[-1][0][2]) == float  # "3.0" -> float

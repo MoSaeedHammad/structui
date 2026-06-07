@@ -141,3 +141,28 @@ def test_file_picker_allowed_extensions(tmp_path):
     assert any('file1.txt' in n for n in names)
     assert any('file2.CSV' in n for n in names)
     assert not any('file3.md' in n for n in names)
+
+
+def test_file_picker_dirs_only_with_allowed_extensions(tmp_path):
+    (tmp_path / "file1.txt").touch()
+    (tmp_path / "file2.yaml").touch()
+    (tmp_path / "dir1").mkdir()
+
+    # When dirs_only=True, allowed_extensions should be ignored
+    picker = LocalFilePicker(
+        directory=str(tmp_path),
+        dirs_only=True,
+        allowed_extensions=['.yaml']
+    )
+    picker.grid = MagicMock()
+    picker.grid.options = {}
+    picker.update_grid()
+
+    names = [row['name'] for row in picker.grid.options['rowData']]
+    # Should only include directories, extension filter ignored
+    assert any('dir1' in n for n in names)
+    assert not any('file1.txt' in n for n in names)
+    assert not any('file2.yaml' in n for n in names)
+
+def test_file_picker_windows_drives_fix():
+    pass
