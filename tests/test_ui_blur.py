@@ -36,7 +36,6 @@ def test_number_blur_events(mock_app_state, mock_schema_manager):
 
         actual_handler = None
         def mock_input_side_effect(*args, **kwargs):
-            nonlocal actual_handler
             m = MagicMock()
             def mock_on(evt, handler):
                 nonlocal actual_handler
@@ -82,7 +81,6 @@ def test_hex_toggle_and_value_error(mock_app_state, mock_schema_manager):
 
         actual_handler = None
         def mock_input_side(*args, **kwargs):
-            nonlocal actual_handler
             m = MagicMock()
             def mock_on(evt, handler):
                 nonlocal actual_handler
@@ -115,7 +113,6 @@ def test_hex_toggle_and_value_error(mock_app_state, mock_schema_manager):
         mock_input.side_effect = mock_input_side_hex
 
         def mock_switch_side(*args, **kwargs):
-            nonlocal actual_toggle_handler
             m = MagicMock()
             def m_on(handler):
                 nonlocal actual_toggle_handler
