@@ -16,5 +16,5 @@ def main():
         print(f"Error starting StructUI: {e}", file=sys.stderr)
         sys.exit(1)
 
-if __name__ in {"__main__", "__mp_main__"}:
+if __name__ in {"__main__", "__mp_main__"}:  # pragma: no cover
     main()
