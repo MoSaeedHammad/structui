@@ -286,7 +286,7 @@ class StructUI:
 
                 def make_on_change(prop_key=k, prop_type=meta.get('type')):
                     def handler(e):
-                        val = e.value
+                        val = getattr(e, 'value', getattr(getattr(e, 'sender', None), 'value', None))
                         if prop_type == 'integer' and val is not None and val != '':
                             try: val = int(float(val))
                             except ValueError: pass
@@ -322,7 +322,7 @@ class StructUI:
                         inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
                         ui.button(icon='folder_open', on_click=pick_file).props('flat round size=sm').tooltip('Select File')
                     elif isinstance(v, float) or (isinstance(v, int) and type(v) is not bool and meta.get('type') != 'integer'):
-                        inp = ui.number(label=label_text, value=v).classes('flex-grow').on_value_change(make_on_change())
+                        inp = ui.input(type='number', label=label_text, value=str(v)).classes('flex-grow').on('blur', make_on_change())
                     elif isinstance(v, int) and type(v) is not bool:
                         # For integers, we add a Dec/Hex toggle switch
                         with ui.row().classes('flex-grow items-center gap-2 flex-nowrap'):
@@ -346,7 +346,7 @@ class StructUI:
                                         pass
                                 inp = ui.input(label=label_text, value=hex_val).classes('flex-grow').on_value_change(on_hex_change)
                             else:
-                                inp = ui.number(label=label_text, value=v).classes('flex-grow').on_value_change(make_on_change())
+                                inp = ui.input(type='number', label=label_text, value=str(v)).classes('flex-grow').on('blur', make_on_change())
                     else:
                         inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
                         
