@@ -37,12 +37,11 @@ def test_number_blur_events(mock_app_state, mock_schema_manager):
         actual_handler = None
         def mock_input_side_effect(*args, **kwargs):
             m = MagicMock()
-            def mock_on(evt, handler):
+            def mock_on_value_change(handler):
                 nonlocal actual_handler
-                if evt == 'blur':
-                    actual_handler = handler
+                actual_handler = handler
                 return m
-            m.on.side_effect = mock_on
+            m.on_value_change = mock_on_value_change
             m.props.return_value = m
             m.classes.return_value = m
             return m
