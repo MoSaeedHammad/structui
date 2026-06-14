@@ -91,3 +91,29 @@ def test_abstract_parser_coverage():
     p = DummyParser()
     assert p.load("file.txt") is None
     assert p.save("file.txt", {}) is None
+
+def test_hex_int_loading_and_saving(tmp_path):
+    from structui.parser import HexInt, YamlParser
+    parser = YamlParser()
+    test_file = tmp_path / "hex_test.yaml"
+    
+    # Write a YAML with hex values
+    test_file.write_text("hex_val: 0x1A\nnormal_val: 26\nneg_hex_val: -0x10\n", encoding="utf-8")
+    
+    loaded = parser.load(str(test_file))
+    assert isinstance(loaded["hex_val"], HexInt)
+    assert loaded["hex_val"] == 26
+    assert isinstance(loaded["normal_val"], int)
+    assert not isinstance(loaded["normal_val"], HexInt)
+    assert loaded["normal_val"] == 26
+    assert isinstance(loaded["neg_hex_val"], HexInt)
+    assert loaded["neg_hex_val"] == -16
+    
+    # Now save it back
+    out_file = tmp_path / "hex_out.yaml"
+    parser.save(str(out_file), loaded)
+    
+    saved_content = out_file.read_text(encoding="utf-8")
+    assert "hex_val: 0x1a" in saved_content or "hex_val: 0x1A" in saved_content
+    assert "normal_val: 26" in saved_content
+    assert "neg_hex_val: 0xfffffffffffffff0" in saved_content

@@ -6,6 +6,32 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 from .xml_parser import load_xml, save_xml
 
+class HexInt(int):
+    """Subclass of int to preserve hex formatting in YAML and UI representation."""
+    def __str__(self) -> str:
+        if self < 0:
+            return f"0x{(self & 0xffffffffffffffff):x}"
+        return f"0x{self:x}"
+        
+    def __repr__(self) -> str:
+        return self.__str__()
+
+def custom_int_constructor(loader, node):
+    val_str = loader.construct_scalar(node)
+    val = loader.construct_yaml_int(node)
+    if '0x' in val_str or '0X' in val_str or '0x' in val_str.lower():
+        return HexInt(val)
+    return val
+
+yaml.SafeLoader.add_constructor('tag:yaml.org,2002:int', custom_int_constructor)
+yaml.Loader.add_constructor('tag:yaml.org,2002:int', custom_int_constructor)
+
+def hex_int_representer(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:int', str(data))
+
+yaml.SafeDumper.add_representer(HexInt, hex_int_representer)
+yaml.Dumper.add_representer(HexInt, hex_int_representer)
+
 class DataParser(ABC):
     """Abstract base class for format-agnostic configuration parsing."""
     
