@@ -291,7 +291,12 @@ class StructUI:
                             try: val = int(float(val))
                             except ValueError: pass
                         elif prop_type in ['number', 'float'] and val is not None and val != '':
-                            try: val = float(val)
+                            try:
+                                val_str = str(val).strip()
+                                if '.' in val_str or 'e' in val_str.lower():
+                                    val = float(val_str)
+                                else:
+                                    val = int(val_str)
                             except ValueError: pass
 
                         self.state.set_data_by_path(self.selected_path["value"], str(prop_key), val)
@@ -321,10 +326,8 @@ class StructUI:
 
                         inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
                         ui.button(icon='folder_open', on_click=pick_file).props('flat round size=sm').tooltip('Select File')
-                    elif isinstance(v, float) or (isinstance(v, int) and type(v) is not bool and meta.get('type') != 'integer'):
-                        inp = ui.input(type='number', label=label_text, value=str(v)).classes('flex-grow').on('blur', make_on_change())
-                    elif isinstance(v, int) and type(v) is not bool:
-                        # For integers, we add a Dec/Hex toggle switch
+                    elif meta.get('type') in ['integer', 'float', 'number'] and type(v) is not bool:
+                        # Universal Hex Toggle for numbers
                         with ui.row().classes('flex-grow items-center gap-2 flex-nowrap'):
                             is_hex = getattr(self, f'_is_hex_{k}_{self.selected_path["value"].replace("/", "_")}', False)
 
@@ -335,7 +338,7 @@ class StructUI:
                             hex_toggle = ui.switch('Hex', value=is_hex).on_value_change(toggle_hex)
 
                             if is_hex:
-                                hex_val = hex(v) if isinstance(v, int) else ""
+                                hex_val = hex(int(float(v))) if v is not None and str(v).strip() != "" else ""
                                 def on_hex_change(e, pk=k):
                                     try:
                                         new_val = int(e.value, 16) if e.value else 0
@@ -346,7 +349,7 @@ class StructUI:
                                         pass
                                 inp = ui.input(label=label_text, value=hex_val).classes('flex-grow').on_value_change(on_hex_change)
                             else:
-                                inp = ui.input(type='number', label=label_text, value=str(v)).classes('flex-grow').on('blur', make_on_change())
+                                inp = ui.input(type='number', label=label_text, value=str(v)).props('debounce="500"').classes('flex-grow').on_value_change(make_on_change())
                     else:
                         inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
                         

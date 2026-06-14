@@ -122,7 +122,7 @@ def test_hex_toggle_handlers(mock_app_state, mock_schema_manager):
          patch('structui.ui.ui.button'), patch('structui.ui.ui.separator'), \
          patch('structui.ui.ui.menu'), patch('structui.ui.ui.menu_item'):
 
-            mock_schema_manager.get_meta.return_value = {"type": "not_integer"}
+            mock_schema_manager.get_meta.return_value = {"type": "integer"}
 
             def mock_switch_side_effect(*args, **kwargs):
                 m = MagicMock()
@@ -160,7 +160,7 @@ def test_on_hex_change_handler(mock_app_state, mock_schema_manager):
          patch('structui.ui.ui.button'), patch('structui.ui.ui.separator'), \
          patch('structui.ui.ui.menu'), patch('structui.ui.ui.menu_item'):
 
-            mock_schema_manager.get_meta.return_value = {"type": "not_integer"}
+            mock_schema_manager.get_meta.return_value = {"type": "integer"}
 
             def mock_input_side_effect(*args, **kwargs):
                 m = MagicMock()
@@ -331,7 +331,7 @@ def test_on_hex_change_handler_value_error(mock_app_state, mock_schema_manager):
          patch('structui.ui.ui.button'), patch('structui.ui.ui.separator'), \
          patch('structui.ui.ui.menu'), patch('structui.ui.ui.menu_item'):
 
-            mock_schema_manager.get_meta.return_value = {"type": "not_integer"}
+            mock_schema_manager.get_meta.return_value = {"type": "integer"}
 
             def mock_input_side_effect(*args, **kwargs):
                 m = MagicMock()
@@ -421,7 +421,7 @@ def test_on_hex_change_handler_value_error2(mock_app_state, mock_schema_manager)
          patch('structui.ui.ui.button'), patch('structui.ui.ui.separator'), \
          patch('structui.ui.ui.menu'), patch('structui.ui.ui.menu_item'):
 
-            mock_schema_manager.get_meta.return_value = {"type": "not_integer"}
+            mock_schema_manager.get_meta.return_value = {"type": "integer"}
 
             def mock_input_side_effect(*args, **kwargs):
                 m = MagicMock()
