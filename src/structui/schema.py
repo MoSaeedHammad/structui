@@ -37,9 +37,9 @@ class SchemaManager:
 
     def get_default_val_for_type(self, type_str: Optional[str]) -> Any:
         """Returns a sensible default value based on the given schema type."""
-        if type_str == 'boolean': return False
-        if type_str == 'number': return 0
-        if type_str == 'dict': return {}
+        if type_str in ('boolean', 'bool'): return False
+        if type_str in ('number', 'integer', 'float'): return 0
+        if type_str in ('dict', 'container'): return {}
         if type_str == 'list': return []
         return ""
 

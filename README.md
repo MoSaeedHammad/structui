@@ -15,6 +15,7 @@ The architecture is explicitly decoupled, making it readily extensible to strict
 - **Pillar B: Hierarchical UI:** Dynamic tree-based rendering with full support for multidimensional containers, dynamic polymorphic list additions, and node mapping. Powered natively by NiceGUI.
 - **Pillar C: Data Validity:** Enforces schema metadata strictly at the UI layer. Missing fields gracefully populate via defaults, required flags trigger locking, and nested typings are continuously evaluated.
 - **Pillar D: Extensibility & Programmatic Control:** Decomposed core logic (App, Parser, State, Schema, UI) allowing external tools and wrappers (e.g. CLI, Agent Workflows) to invoke the editor or inject properties safely.
+- **Hex/Decimal Toggling:** Automatically detects and preserves hex formatting (`0x...`) loaded from YAML configurations. Supports inline format toggling between hex and decimal, with validation logic to restrict inputs to valid hex formats and enforce platform/64-bit size limits.
 
 ## Installation
 

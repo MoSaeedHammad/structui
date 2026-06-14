@@ -1,10 +1,12 @@
 import os
 import sys
+import re
 from nicegui import app, ui
 from typing import Dict, Any, List
 from .state import AppState
 from .schema import SchemaManager
 from .file_picker import LocalFilePicker
+from .parser import HexInt
 
 class StructUI:
     """The central view abstraction for managing the hierarchical NiceGUI visualization."""
@@ -165,11 +167,11 @@ class StructUI:
                 meta_type = self.schema_manager.get_meta(str(k)).get('type')
                 if meta_type == 'list':
                     data_node[k] = []
-                elif meta_type == 'dict':
+                elif meta_type in ('dict', 'container'):
                     data_node[k] = {}
-                elif meta_type == 'boolean':
+                elif meta_type in ('boolean', 'bool'):
                     data_node[k] = False
-                elif meta_type == 'number':
+                elif meta_type in ('number', 'integer', 'float'):
                     data_node[k] = 0
                 else:
                     data_node[k] = self.schema_manager.get_default_val_for_type(meta_type)
@@ -292,7 +294,7 @@ class StructUI:
                 def make_on_change(prop_key=k, prop_type=p_type):
                     def handler(e):
                         val = getattr(e, 'value', getattr(getattr(e, 'sender', None), 'value', None))
-                        if prop_type == 'number' and val is not None and val != '':
+                        if prop_type in ('number', 'integer', 'float') and val is not None and val != '':
                             try:
                                 val_str = str(val).strip()
                                 if '.' in val_str:
@@ -328,8 +330,144 @@ class StructUI:
 
                         inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
                         ui.button(icon='folder_open', on_click=pick_file).props('flat round size=sm').tooltip('Select File')
-                    elif meta.get('type') == 'number' or (isinstance(v, (int, float)) and type(v) is not bool):
-                        inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
+                    elif meta.get('type') in ('number', 'integer', 'float') or (isinstance(v, (int, float)) and type(v) is not bool):
+                        # Determine if we should display as hex
+                        path_suffix = path.replace('/', '_')
+                        hex_attr = f"_is_hex_{k}_{path_suffix}"
+                        is_hex = getattr(self, hex_attr, None)
+                        if is_hex is None:
+                            is_hex = isinstance(v, HexInt)
+                            setattr(self, hex_attr, is_hex)
+
+                        # Toggle handler
+                        def make_hex_toggle(prop_key=k, attr=hex_attr):
+                            def handler(e):
+                                setattr(self, attr, bool(e.value))
+                                self.refresh_tree_and_editor()
+                            return handler
+
+                        # Switch for hex toggle
+                        ui.switch(text='Hex', value=is_hex).on_value_change(make_hex_toggle())
+
+                        if not hasattr(self, 'validation_errors'):
+                            self.validation_errors = set()
+
+                        error_key = f"{path}/{k}"
+
+                        def update_validation_state(err_k, is_valid_input):
+                            if is_valid_input:
+                                self.validation_errors.discard(err_k)
+                            else:
+                                self.validation_errors.add(err_k)
+                            if self.save_btn:
+                                if self.validation_errors:
+                                    self.save_btn.disable()
+                                else:
+                                    self.save_btn.enable()
+
+                        if is_hex:
+                            # Render ui.input for hex mode
+                            if v is None or v == '':
+                                hex_val = ''
+                            else:
+                                try:
+                                    val_int = int(v)
+                                    if val_int < 0:
+                                        hex_val = f"0x{val_int & 0xffffffffffffffff:x}"
+                                    else:
+                                        hex_val = f"0x{val_int:x}"
+                                except ValueError:
+                                    hex_val = str(v)
+
+                            # Validation rule for Hex
+                            def validate_hex(val_str):
+                                if not val_str:
+                                    update_validation_state(error_key, True)
+                                    return True
+                                val_str = val_str.strip()
+                                if val_str.lower().startswith('0x'):
+                                    val_str = val_str[2:]
+                                if not re.match(r'^[0-9a-fA-F]+$', val_str):
+                                    update_validation_state(error_key, False)
+                                    return 'Invalid hex string'
+                                try:
+                                    parsed = int(val_str, 16)
+                                    if parsed > 0xffffffffffffffff:
+                                        update_validation_state(error_key, False)
+                                        return 'Exceeds 64-bit unsigned limit'
+                                except ValueError:
+                                    update_validation_state(error_key, False)
+                                    return 'Invalid hex format'
+                                update_validation_state(error_key, True)
+                                return True
+
+                            # On change handler for hex input
+                            def make_hex_change(prop_key=k):
+                                def handler(e):
+                                    val_str = getattr(e, 'value', getattr(getattr(e, 'sender', None), 'value', None))
+                                    if val_str is None or val_str == '':
+                                        self.state.set_data_by_path(self.selected_path["value"], str(prop_key), HexInt(0))
+                                        self.state.commit()
+                                        self.update_save_btn_state()
+                                        return
+                                    
+                                    val_str_clean = val_str.strip()
+                                    if val_str_clean.lower().startswith('0x'):
+                                        val_str_clean = val_str_clean[2:]
+                                    
+                                    if not re.match(r'^[0-9a-fA-F]+$', val_str_clean):
+                                        return
+                                    
+                                    try:
+                                        parsed_val = int(val_str_clean, 16)
+                                        if parsed_val > 0xffffffffffffffff:
+                                            return
+                                        self.state.set_data_by_path(self.selected_path["value"], str(prop_key), HexInt(parsed_val))
+                                        self.state.commit()
+                                        self.update_save_btn_state()
+                                    except ValueError:
+                                        pass
+                                return handler
+
+                            inp = ui.input(label=label_text, value=hex_val, validation={'Invalid hex': validate_hex}).classes('flex-grow').on_value_change(make_hex_change())
+                        else:
+                            # Render ui.number for decimal mode
+                            def make_num_change(prop_key=k):
+                                def handler(e):
+                                    val = getattr(e, 'value', getattr(getattr(e, 'sender', None), 'value', None))
+                                    if val is not None and val != '':
+                                        try:
+                                            val_str = str(val).strip()
+                                            if '.' in val_str:
+                                                parsed_val = float(val_str)
+                                            else:
+                                                parsed_val = int(val_str)
+                                            
+                                            if parsed_val < -9223372036854775808 or parsed_val > 18446744073709551615:
+                                                return
+                                            self.state.set_data_by_path(self.selected_path["value"], str(prop_key), parsed_val)
+                                            self.state.commit()
+                                            self.update_save_btn_state()
+                                        except ValueError:
+                                            pass
+                                return handler
+
+                            def validate_num(v_val):
+                                if v_val is None or v_val == '':
+                                    update_validation_state(error_key, True)
+                                    return True
+                                try:
+                                    parsed_val = float(v_val)
+                                    if parsed_val < -9223372036854775808 or parsed_val > 18446744073709551615:
+                                        update_validation_state(error_key, False)
+                                        return 'Exceeds platform size limits'
+                                except ValueError:
+                                    update_validation_state(error_key, False)
+                                    return 'Invalid number'
+                                update_validation_state(error_key, True)
+                                return True
+
+                            inp = ui.number(label=label_text, value=v, validation={'Invalid': validate_num}).classes('flex-grow').on_value_change(make_num_change())
                     else:
                         inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
                         
