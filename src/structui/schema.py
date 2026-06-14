@@ -15,6 +15,19 @@ class SchemaManager:
             parser = get_parser(self.schema_filepath)
             loaded_schema = parser.load(self.schema_filepath)
             self.schema_meta = loaded_schema if loaded_schema is not None else {}
+            
+            # Normalize schema types to simplified set
+            for key, meta in self.schema_meta.items():
+                if isinstance(meta, dict) and 'type' in meta:
+                    t = meta['type']
+                    if t in ['container', 'dict']:
+                        meta['type'] = 'dict'
+                    elif t in ['integer', 'float', 'number']:
+                        meta['type'] = 'number'
+                    elif t in ['file', 'path']:
+                        meta['type'] = 'path'
+                    elif t in ['boolean', 'bool']:
+                        meta['type'] = 'boolean'
         else:
             print(f"Schema file {self.schema_filepath} not found. Using empty schema.")
 
@@ -25,8 +38,8 @@ class SchemaManager:
     def get_default_val_for_type(self, type_str: Optional[str]) -> Any:
         """Returns a sensible default value based on the given schema type."""
         if type_str == 'boolean': return False
-        if type_str in ['integer', 'number', 'float']: return 0
-        if type_str in ['dict', 'container']: return {}
+        if type_str == 'number': return 0
+        if type_str == 'dict': return {}
         if type_str == 'list': return []
         return ""
 
@@ -44,7 +57,7 @@ class SchemaManager:
             child_meta = self.get_meta(child_key)
             if child_meta.get('required', False):
                 child_type = child_meta.get('type', 'string')
-                if child_type in ['container', 'dict']:
+                if child_type == 'dict':
                     new_val[child_key] = self.prefill_required(child_key, visited=visited.copy())
                 else:
                     new_val[child_key] = self.get_default_val_for_type(child_type)

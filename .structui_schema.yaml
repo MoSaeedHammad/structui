@@ -589,19 +589,19 @@ meta_data:
   required: false
   desc: Extra descriptive information mapped to the item.
 factor:
-  type: float
+  type: number
   required: false
   desc: Extracted scalar multiplied against raw bit readings.
 offset:
-  type: float
+  type: number
   required: false
   desc: Base value added to the scaled reading.
 low_threshold:
-  type: float
+  type: number
   required: false
   desc: Floor range limit for valid operations.
 high_threshold:
-  type: float
+  type: number
   required: false
   desc: Ceiling range limit for valid operations.
 value:
