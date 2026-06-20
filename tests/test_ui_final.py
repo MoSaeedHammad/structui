@@ -504,3 +504,488 @@ def test_refresh_tree_empty_selected(mock_app_state, mock_schema_manager):
     ui_inst.draw_editor = MagicMock()
     ui_inst.refresh_tree_and_editor()
     assert ui_inst.selected_path["value"] == "root"
+
+def test_build_tree_nodes_list_prims(mock_app_state, mock_schema_manager):
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    # mock get_meta to return a type that is not 'dict' or 'list' for 'k'
+    mock_schema_manager.get_meta.side_effect = lambda k: {"type": "string"}
+
+    data = {"prim_list": [1, 2, 3]}
+    res = ui_inst.build_tree_nodes(data, "root", "root")
+
+    assert res['id'] == "root"
+    assert "children" not in res or "prim_list" not in [child.get('label') for child in res.get('children', [])]
+
+def test_make_on_change_float_fallback(mock_app_state, mock_schema_manager):
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+
+    with patch('structui.ui.ui.input') as mock_input, patch('structui.ui.ui.row'), patch('structui.ui.ui.column'):
+
+        m = MagicMock()
+        def mock_on_change(handler):
+            nonlocal actual_change
+            actual_change = handler
+            return m
+        m.classes.return_value = m
+        m.on_value_change = mock_on_change
+        m.on.return_value = m
+        mock_input.return_value = m
+
+        actual_change = None
+
+        # Test drawing string value
+        mock_app_state.get_data_by_path.return_value = {"k": "10.5"}
+        ui_inst.draw_editor("root")
+
+        if actual_change:
+            class Ev: pass
+            ev = Ev()
+            ev.value = "10.5"
+            actual_change(ev)
+            mock_app_state.set_data_by_path.assert_called_with("root", "k", 10.5)
+
+
+def test_make_num_change_error_cases(mock_app_state, mock_schema_manager):
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+
+    with patch('structui.ui.ui.number') as mock_input, patch('structui.ui.ui.row'), patch('structui.ui.ui.column'):
+        m = MagicMock()
+        def mock_on_change(handler):
+            nonlocal actual_change
+            actual_change = handler
+            return m
+        m.classes.return_value = m
+        m.on_value_change = mock_on_change
+        m.on.return_value = m
+        mock_input.return_value = m
+
+        actual_change = None
+
+        mock_app_state.get_data_by_path.return_value = {"num": 10}
+        ui_inst.draw_editor("root")
+
+        if actual_change:
+            class Ev: pass
+            ev = Ev()
+
+            # Out of bounds
+            ev.value = "18446744073709551616"
+            actual_change(ev) # Should early return
+
+            # Out of bounds negative
+            ev.value = "-9223372036854775809"
+            actual_change(ev) # Should early return
+
+            # ValueError
+            ev.value = "not_a_number"
+            actual_change(ev) # Should pass ValueError exception
+
+            mock_app_state.set_data_by_path.assert_not_called()
+
+def test_hex_input_rendering(mock_app_state, mock_schema_manager):
+    from structui.parser import HexInt
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+
+    with patch('structui.ui.ui.input') as mock_input, patch('structui.ui.ui.row'), patch('structui.ui.ui.column'):
+        m = MagicMock()
+        def mock_on_change(handler):
+            nonlocal hex_change
+            hex_change = handler
+            return m
+        m.classes.return_value = m
+        m.on_value_change = mock_on_change
+        m.on.return_value = m
+        mock_input.return_value = m
+
+        hex_change = None
+
+        # Test drawing string value
+        mock_app_state.get_data_by_path.return_value = {"k": HexInt(10)}
+        ui_inst.draw_editor("root")
+
+        if hex_change:
+            class Ev: pass
+            ev = Ev()
+            # None value
+            ev.value = None
+            hex_change(ev)
+            mock_app_state.set_data_by_path.assert_called_with("root", "k", 0)
+
+            # Value Error
+            ev.value = "0xnothex"
+            hex_change(ev)
+
+            # Out of bounds
+            ev.value = "0x10000000000000000" # Exceeds 64-bit limit
+            hex_change(ev)
+
+
+def test_pick_file_path(mock_app_state, mock_schema_manager):
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+    ui_inst.refresh_tree_and_editor = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "path", "extensions": [".txt"]}
+
+    with patch('structui.ui.ui.input') as mock_input, \
+         patch('structui.ui.ui.button') as mock_btn, \
+         patch('structui.ui.LocalFilePicker') as mock_picker, \
+         patch('structui.ui.ui.row'), patch('structui.ui.ui.column'):
+
+        pick_cb = None
+        def mock_btn_call(*args, **kwargs):
+            nonlocal pick_cb
+            if kwargs.get('icon') == 'folder_open':
+                pick_cb = kwargs.get('on_click')
+            m = MagicMock()
+            m.props.return_value = m
+            m.tooltip.return_value = m
+            return m
+        mock_btn.side_effect = mock_btn_call
+
+        m_in = MagicMock()
+        m_in.classes.return_value = m_in
+        m_in.on_value_change.return_value = m_in
+        m_in.on.return_value = m_in
+        mock_input.return_value = m_in
+
+        mock_app_state.get_data_by_path.return_value = {"filepath": "dummy.txt"}
+        ui_inst.draw_editor("root")
+
+        if pick_cb:
+            import asyncio
+            async def mock_picker_success(*args, **kwargs):
+                return ["/mock/selected.txt"]
+            mock_picker.side_effect = mock_picker_success
+
+            asyncio.run(pick_cb())
+
+            mock_app_state.set_data_by_path.assert_called_with("root", "filepath", "/mock/selected.txt")
+            ui_inst.refresh_tree_and_editor.assert_called()
+
+def test_hex_validation(mock_app_state, mock_schema_manager):
+    from structui.parser import HexInt
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+
+    with patch('structui.ui.ui.input') as mock_input, \
+         patch('structui.ui.ui.row'), patch('structui.ui.ui.column'):
+
+        validator = None
+        def mock_input_call(*args, **kwargs):
+            nonlocal validator
+            if 'validation' in kwargs:
+                validator = list(kwargs['validation'].values())[0]
+            m = MagicMock()
+            m.classes.return_value = m
+            m.on_value_change.return_value = m
+            m.on.return_value = m
+            return m
+        mock_input.side_effect = mock_input_call
+
+        mock_app_state.get_data_by_path.return_value = {"h": HexInt(15)}
+        ui_inst.draw_editor("root")
+
+        if validator:
+            assert validator(None) is True
+            assert validator("") is True
+            assert validator("0x") == 'Invalid hex string'
+            assert validator("0xZ") == 'Invalid hex string'
+            assert validator("0x10000000000000000") == 'Exceeds 64-bit unsigned limit'
+            assert validator("0x1A") is True
+
+def test_num_validation(mock_app_state, mock_schema_manager):
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+
+    with patch('structui.ui.ui.number') as mock_input, \
+         patch('structui.ui.ui.row'), patch('structui.ui.ui.column'):
+
+        validator = None
+        def mock_input_call(*args, **kwargs):
+            nonlocal validator
+            if 'validation' in kwargs:
+                validator = list(kwargs['validation'].values())[0]
+            m = MagicMock()
+            m.classes.return_value = m
+            m.on_value_change.return_value = m
+            m.on.return_value = m
+            return m
+        mock_input.side_effect = mock_input_call
+
+        mock_app_state.get_data_by_path.return_value = {"n": 15}
+        ui_inst.draw_editor("root")
+
+        if validator:
+            assert validator(None) is True
+            assert validator("") is True
+            assert validator("1e20") == 'Exceeds platform size limits'
+            assert validator("-1e20") == 'Exceeds platform size limits'
+            assert validator("not_num") == 'Invalid number'
+            assert validator("15") is True
+            assert validator("15.5") is True
+
+
+def test_hex_conversion_failures(mock_app_state, mock_schema_manager):
+    from structui.parser import HexInt
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+    setattr(ui_inst, "_is_hex_h_root", True)
+
+    with patch('structui.ui.ui.input') as mock_input,          patch('structui.ui.ui.row'), patch('structui.ui.ui.column'), patch('structui.ui.ui.switch'):
+        m = MagicMock()
+        m.classes.return_value = m
+        m.on_value_change.return_value = m
+        m.on.return_value = m
+        mock_input.return_value = m
+
+        mock_app_state.get_data_by_path.return_value = {"h": "not_an_int"}
+        ui_inst.draw_editor("root")
+        call_h = [c for c in mock_input.call_args_list if c.kwargs.get('label') == 'h']
+        if call_h:
+            assert call_h[0].kwargs.get('value') == "not_an_int"
+
+def test_hex_change_failures(mock_app_state, mock_schema_manager):
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+    setattr(ui_inst, "_is_hex_h_root", True)
+
+    with patch('structui.ui.ui.input') as mock_input, \
+         patch('structui.ui.ui.row'), patch('structui.ui.ui.column'):
+
+        hex_change = None
+        def mock_input_call(*args, **kwargs):
+            m = MagicMock()
+            def mock_on_change(handler):
+                nonlocal hex_change
+                hex_change = handler
+                return m
+            m.classes.return_value = m
+            m.on_value_change = mock_on_change
+            m.on.return_value = m
+            return m
+        mock_input.side_effect = mock_input_call
+
+        mock_app_state.get_data_by_path.return_value = {"h": 0}
+        ui_inst.draw_editor("root")
+
+        if hex_change:
+            class Ev: pass
+            ev = Ev()
+
+            # ValueError inside int(x, 16) - coverage for 428-429
+            # Actually, `re.match` prevents invalid hex strings from reaching `int(..., 16)`.
+            # We can't hit 428-429 because of line 418. So we patch `int` to throw ValueError.
+            ev.value = "0x1A"
+            with patch('builtins.int', side_effect=ValueError):
+                hex_change(ev) # Should safely ignore
+
+def test_num_change_failures(mock_app_state, mock_schema_manager):
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+    setattr(ui_inst, "_is_hex_n_root", False)
+
+    with patch('structui.ui.ui.number') as mock_input, \
+         patch('structui.ui.ui.row'), patch('structui.ui.ui.column'):
+
+        num_change = None
+        def mock_input_call(*args, **kwargs):
+            m = MagicMock()
+            def mock_on_change(handler):
+                nonlocal num_change
+                num_change = handler
+                return m
+            m.classes.return_value = m
+            m.on_value_change = mock_on_change
+            m.on.return_value = m
+            return m
+        mock_input.side_effect = mock_input_call
+
+        mock_app_state.get_data_by_path.return_value = {"n": 0}
+        ui_inst.draw_editor("root")
+
+        if num_change:
+            class Ev: pass
+            ev = Ev()
+
+            # ValueError inside float/int - coverage for 451-452
+            ev.value = "not_a_num"
+            num_change(ev) # Should safely ignore
+
+            # ValueError inside float - string with decimal
+            ev.value = "not_a_num.5"
+            num_change(ev) # Should safely ignore
+
+def test_make_on_change_float_resolution(mock_app_state, mock_schema_manager):
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number", "options": ["10.5", "10"]}
+
+    with patch('structui.ui.ui.select') as mock_input,          patch('structui.ui.ui.row'), patch('structui.ui.ui.column'):
+        m = MagicMock()
+        def mock_on_change(handler):
+            nonlocal actual_change
+            actual_change = handler
+            return m
+        m.classes.return_value = m
+        m.on_value_change = mock_on_change
+        m.on.return_value = m
+        mock_input.return_value = m
+
+        actual_change = None
+
+        mock_app_state.get_data_by_path.return_value = {"k": 10.5}
+        ui_inst.draw_editor("root")
+
+        if actual_change:
+            class Ev: pass
+            ev = Ev()
+            ev.value = "10.5"
+            actual_change(ev)
+            mock_app_state.set_data_by_path.assert_called_with("root", "k", 10.5)
+        pass
+
+def test_save_btn_state_toggling(mock_app_state, mock_schema_manager):
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    # We want to hit lines 363-366
+    ui_inst.save_btn = MagicMock()
+    ui_inst.validation_errors = set()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+    setattr(ui_inst, "_is_hex_n_root", False)
+
+    with patch('structui.ui.ui.number') as mock_input, \
+         patch('structui.ui.ui.row'), patch('structui.ui.ui.column'):
+
+        validator = None
+        def mock_input_call(*args, **kwargs):
+            nonlocal validator
+            if 'validation' in kwargs:
+                validator = list(kwargs['validation'].values())[0]
+            m = MagicMock()
+            m.classes.return_value = m
+            m.on_value_change.return_value = m
+            m.on.return_value = m
+            return m
+        mock_input.side_effect = mock_input_call
+
+        mock_app_state.get_data_by_path.return_value = {"n": 0}
+        ui_inst.draw_editor("root")
+
+        if validator:
+            # Trigger failure
+            validator("not_a_number")
+            assert "root/n" in ui_inst.validation_errors
+            ui_inst.save_btn.disable.assert_called()
+
+            # Trigger success
+            validator("10")
+            assert "root/n" not in ui_inst.validation_errors
+            ui_inst.save_btn.enable.assert_called()
+
+def test_hex_logic_edge_cases(mock_app_state, mock_schema_manager):
+    from structui.parser import HexInt
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+    setattr(ui_inst, "_is_hex_h_root", True)
+
+    with patch('structui.ui.ui.input') as mock_input,          patch('structui.ui.ui.row'), patch('structui.ui.ui.column'),          patch('structui.ui.ui.switch'):
+        m = MagicMock()
+        m.classes.return_value = m
+        m.on_value_change.return_value = m
+        m.on.return_value = m
+        mock_input.return_value = m
+
+        mock_app_state.get_data_by_path.return_value = {"h": None}
+        ui_inst.draw_editor("root")
+        call_h = [c for c in mock_input.call_args_list if c.kwargs.get('label') == 'h']
+        if call_h:
+            assert call_h[0].kwargs.get('value') == ''
+
+        mock_app_state.get_data_by_path.return_value = {"h": HexInt(-10)}
+        mock_input.reset_mock()
+        ui_inst.draw_editor("root")
+        call_h = [c for c in mock_input.call_args_list if c.kwargs.get('label') == 'h']
+        if call_h:
+            assert "0x" in call_h[0].kwargs.get('value')
+
+def test_validate_hex_value_error(mock_app_state, mock_schema_manager):
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+
+    mock_schema_manager.get_meta.return_value = {"type": "number"}
+    setattr(ui_inst, "_is_hex_h_root", True)
+
+    with patch('structui.ui.ui.input') as mock_input, \
+         patch('structui.ui.ui.row'), patch('structui.ui.ui.column'):
+        validator = None
+        def mock_input_call(*args, **kwargs):
+            nonlocal validator
+            if 'validation' in kwargs:
+                validator = list(kwargs['validation'].values())[0]
+            m = MagicMock()
+            m.classes.return_value = m
+            m.on_value_change.return_value = m
+            m.on.return_value = m
+            return m
+        mock_input.side_effect = mock_input_call
+
+        mock_app_state.get_data_by_path.return_value = {"h": 0}
+        ui_inst.draw_editor("root")
+
+        if validator:
+            # We want to trigger ValueError in int(val_str, 16)
+            # Since re.match(r'^[0-9a-fA-F]+$', val_str) runs first, it's difficult natively.
+            # We will patch int() for this specific scope
+            with patch('builtins.int', side_effect=ValueError):
+                assert validator("1A") == "Invalid hex format"

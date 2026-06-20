@@ -147,6 +147,7 @@ def test_get_item_label(mock_schema_file):
     assert sm.get_item_label({"val1": 10}, "root/unknown", root_data, "default") == "default"
     
     # fallback to default if not dict
+    assert sm.get_item_label("NotADict", "root/unknown", root_data, "default") == "default"
 def test_schema_manager_recursive(tmp_path, capsys):
     schema_path = tmp_path / "recursive.yaml"
     # To trigger recursion in prefill_required, the child must be required
@@ -161,3 +162,26 @@ item1:
     sm.prefill_required("item1")
     captured = capsys.readouterr()
     assert "recursive schema detected" in captured.out
+
+
+
+def test_schema_manager_file_path(tmp_path):
+    schema_path = tmp_path / "schema.yaml"
+    schema_path.write_text("""
+file_item:
+  type: file
+    """, encoding="utf-8")
+    sm = SchemaManager(str(schema_path))
+    assert sm.get_meta("file_item")["type"] == "path"
+
+def test_get_schema_key_for_path_early_return(mock_schema_file):
+    sm = SchemaManager(mock_schema_file)
+    root_data = {"root.yaml": {"a": 1}}
+    # Ensure it hits the "else: curr_data = None" block (line 82)
+    # when path does not match data
+    assert sm.get_schema_key_for_path("root/root.yaml/nonexistent/child", root_data) == "child"
+
+def test_get_schema_key_for_path_not_dict_or_list(mock_schema_file):
+    sm = SchemaManager(mock_schema_file)
+    root_data = {"config.yaml": "not a dict or list"}
+    assert sm.get_schema_key_for_path("root/config.yaml/something", root_data) == "something"
