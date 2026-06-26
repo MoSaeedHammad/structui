@@ -117,3 +117,10 @@ def test_hex_int_loading_and_saving(tmp_path):
     assert "hex_val: 0x1a" in saved_content or "hex_val: 0x1A" in saved_content
     assert "normal_val: 26" in saved_content
     assert "neg_hex_val: 0xfffffffffffffff0" in saved_content
+from structui.parser import HexInt
+
+def test_hexint_repr():
+    h1 = HexInt(26)
+    assert repr(h1) == "0x1a"
+    h2 = HexInt(-16)
+    assert repr(h2) == "0xfffffffffffffff0"

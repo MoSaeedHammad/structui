@@ -161,3 +161,42 @@ item1:
     sm.prefill_required("item1")
     captured = capsys.readouterr()
     assert "recursive schema detected" in captured.out
+from structui.schema import SchemaManager
+
+def test_schema_missing():
+    sm = SchemaManager("tests/test_data/non_existent.yaml")
+    assert sm.get_meta("some_key") == {}
+
+def test_schema_path_type(tmp_path):
+    schema_file = tmp_path / "schema.yaml"
+    schema_file.write_text("some_file: {type: file}", encoding="utf-8")
+    sm = SchemaManager(str(schema_file))
+    assert sm.get_meta("some_file").get("type") == "path"
+
+def test_schema_types(tmp_path):
+    schema_file = tmp_path / "schema.yaml"
+    schema_file.write_text("""
+some_cont: {type: container}
+some_dict: {type: dict}
+some_int: {type: integer}
+some_float: {type: float}
+some_num: {type: number}
+some_path: {type: path}
+some_file2: {type: file}
+some_bool: {type: bool}
+some_boolean: {type: boolean}
+some_list: {type: list}
+some_str: {type: string}
+""", encoding="utf-8")
+    sm = SchemaManager(str(schema_file))
+    assert sm.get_meta("some_cont").get("type") == "dict"
+    assert sm.get_meta("some_dict").get("type") == "dict"
+    assert sm.get_meta("some_int").get("type") == "number"
+    assert sm.get_meta("some_float").get("type") == "number"
+    assert sm.get_meta("some_num").get("type") == "number"
+    assert sm.get_meta("some_path").get("type") == "path"
+    assert sm.get_meta("some_file2").get("type") == "path"
+    assert sm.get_meta("some_bool").get("type") == "boolean"
+    assert sm.get_meta("some_boolean").get("type") == "boolean"
+    assert sm.get_meta("some_list").get("type") == "list"
+    assert sm.get_meta("some_str").get("type") == "string"
