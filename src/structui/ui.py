@@ -467,7 +467,7 @@ class StructUI:
                                 update_validation_state(error_key, True)
                                 return True
 
-                            inp = ui.number(label=label_text, value=v, validation={'Invalid': validate_num}).classes('flex-grow').on_value_change(make_num_change())
+                            inp = ui.input(label=label_text, value=str(v), validation={'Invalid': validate_num}).props('type="number" debounce="500"').classes('flex-grow').on_value_change(make_num_change())
                     else:
                         inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
                         
