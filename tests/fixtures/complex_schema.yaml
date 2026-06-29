@@ -1,0 +1,85 @@
+root:
+  type: dict
+  allowed_children: [app_config, plugins, network_settings]
+
+app_config:
+  type: dict
+  required: true
+  allowed_children: [name, version, environment, debugging]
+
+name:
+  type: string
+  required: true
+
+version:
+  type: number
+  required: true
+
+environment:
+  type: string
+  options: [dev, staging, prod]
+  required: true
+
+debugging:
+  type: boolean
+
+plugins:
+  type: list
+  list_item_type: plugin_item
+
+plugin_item:
+  type: dict
+  allowed_children: [plugin_name, enabled, config]
+  label_key: plugin_name
+
+plugin_name:
+  type: string
+  required: true
+
+enabled:
+  type: boolean
+
+config:
+  type: dict
+  allowed_children: [retries, timeout]
+
+retries:
+  type: integer
+
+timeout:
+  type: float
+
+network_settings:
+  type: dict
+  allowed_children: [interfaces]
+
+interfaces:
+  type: list
+  list_item_types: [eth_interface, wlan_interface]
+
+eth_interface:
+  type: dict
+  allowed_children: [if_name, mac_address, speed]
+  label_key: if_name
+
+wlan_interface:
+  type: dict
+  allowed_children: [if_name, ssid, security]
+  label_key: if_name
+
+if_name:
+  type: string
+
+mac_address:
+  type: string
+
+speed:
+  type: integer
+  options: [10, 100, 1000]
+
+ssid:
+  type: string
+
+security:
+  type: string
+  options: [WEP, WPA, WPA2, WPA3]
