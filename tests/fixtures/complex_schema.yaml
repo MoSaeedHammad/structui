@@ -1,0 +1,92 @@
+root:
+  type: dict
+  allowed_children: [system_config, applications]
+
+system_config:
+  type: dict
+  required: true
+  allowed_children: [hostname, ip_address, port, interfaces, diagnostics]
+
+hostname:
+  type: string
+  required: true
+
+ip_address:
+  type: string
+  required: true
+
+port:
+  type: number
+  required: false
+
+interfaces:
+  type: list
+  list_item_type: interface_item
+
+interface_item:
+  type: dict
+  allowed_children: [name, enabled, mtu, mac_address]
+  label_key: name
+
+name:
+  type: string
+  required: true
+
+enabled:
+  type: boolean
+  required: true
+
+mtu:
+  type: number
+
+mac_address:
+  type: string
+
+diagnostics:
+  type: dict
+  allowed_children: [log_level, max_log_size, trace_enabled]
+
+log_level:
+  type: string
+
+max_log_size:
+  type: number
+
+trace_enabled:
+  type: boolean
+
+applications:
+  type: list
+  list_item_type: app_item
+
+app_item:
+  type: dict
+  allowed_children: [app_name, version, auto_start, dependencies, environment]
+  label_key: app_name
+
+app_name:
+  type: string
+  required: true
+
+version:
+  type: string
+
+auto_start:
+  type: boolean
+
+dependencies:
+  type: list
+  list_item_type: dependency_item
+
+dependency_item:
+  type: string
+
+environment:
+  type: dict
+  allowed_children: [env_var1, env_var2]
+
+env_var1:
+  type: string
+
+env_var2:
+  type: string
