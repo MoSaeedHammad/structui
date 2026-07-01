@@ -110,9 +110,10 @@ class SchemaManager:
             if 'label_key' in meta:
                 return meta['label_key']
             for child in meta.get('allowed_children', []):
-                if child in self.schema_meta and self.schema_meta[child].get('is_label', False):
+                child_meta = self.schema_meta.get(child, {})
+                if isinstance(child_meta, dict) and child_meta.get('is_label', False):
                     return child
-        return ''
+        return ""
 
     def get_item_label(self, item_data: Any, item_path: str, root_data: Any, default_label: str) -> str:
         """Agnostically determines the display label for an object via schema rules."""

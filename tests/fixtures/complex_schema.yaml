@@ -1,0 +1,55 @@
+container_A:
+  type: dict
+  allowed_children:
+    - string_prop
+    - number_prop
+    - child_list
+    - nested_dict
+  required: true
+
+string_prop:
+  type: string
+  required: true
+
+number_prop:
+  type: number
+
+child_list:
+  type: list
+  list_item_types:
+    - list_item_1
+    - list_item_2
+
+list_item_1:
+  type: dict
+  allowed_children:
+    - id
+    - flag
+
+list_item_2:
+  type: dict
+  allowed_children:
+    - name
+    - value
+
+id:
+  type: string
+  is_label: true
+
+name:
+  type: string
+  is_label: true
+
+flag:
+  type: boolean
+
+value:
+  type: number
+
+nested_dict:
+  type: dict
+  allowed_children:
+    - inner_string
+
+inner_string:
+  type: string
