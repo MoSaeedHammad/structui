@@ -3,7 +3,7 @@ import sys
 import re
 from nicegui import app, ui
 from typing import Dict, Any, List
-from .state import AppState
+from .state import AppState, evaluate_dynamic_path, clean_dynamic_options
 from .schema import SchemaManager
 from .file_picker import LocalFilePicker
 from .parser import HexInt
@@ -22,6 +22,7 @@ class StructUI:
         self.dark_mode: Any = None
         self.initial_dark_mode = dark_mode
         self.save_btn: Any = None
+        self.validation_errors: set[str] = set()
 
     def get_allowed_options(self, path: str, data_node: Any) -> List[Dict[str, str]]:
         schema_key = self.schema_manager.get_schema_key_for_path(path, self.state.config_data)
@@ -125,6 +126,11 @@ class StructUI:
 
     def update_save_btn_state(self):
         if getattr(self, 'save_btn', None):
+            if getattr(self, 'validation_errors', None):
+                self.save_btn.disable()
+            else:
+                self.save_btn.enable()
+                
             if getattr(self.state, 'is_dirty', False):
                 self.save_btn._props['color'] = 'warning'
                 self.save_btn.tooltip('Unsaved Changes Available!')
@@ -132,8 +138,6 @@ class StructUI:
                 self.save_btn._props['color'] = 'primary'
                 self.save_btn.tooltip('Save Configurations')
             self.save_btn.update()
-
-        self.draw_editor(self.selected_path["value"])
 
     def update_footer(self, prop_key=None):
         self.footer_pane.clear()
@@ -314,9 +318,57 @@ class StructUI:
                 
                 with ui.row().classes('items-center flex-grow flex-nowrap gap-2 w-full'):
                     if options:
-                        safe_options = list(options)
-                        if v not in safe_options: safe_options.append(v)
-                        inp = ui.select(safe_options, value=v, label=label_text).classes('flex-grow').on_value_change(make_on_change())
+                        is_dynamic = isinstance(options, str)
+                        if is_dynamic:
+                            # Validate path syntax
+                            is_valid_syntax = bool(re.match(r'^[a-zA-Z0-9_]+(?:\[\*\])?(?:\.[a-zA-Z0-9_]+(?:\[\*\])?)*$', options))
+                            if not is_valid_syntax:
+                                ui.label("Invalid path syntax").classes('text-yellow-600 text-xs font-bold').tooltip(f"Syntax error in dynamic options path: {options}")
+                                safe_options = [v] if v is not None and v != '' else []
+                                inp = ui.select(safe_options, value=v, label=label_text).classes('flex-grow').on_value_change(make_on_change())
+                            else:
+                                try:
+                                    raw_resolved = evaluate_dynamic_path(self.state.config_data, options)
+                                    safe_options = clean_dynamic_options(raw_resolved)
+                                except Exception as ex:
+                                    ui.label("Path evaluation failed").classes('text-red-500 text-xs font-bold').tooltip(str(ex))
+                                    safe_options = []
+                                
+                                # Check if currently selected value is deleted/invalid
+                                error_key = f"{path}/{k}"
+                                if not hasattr(self, 'validation_errors'):
+                                    self.validation_errors = set()
+                                
+                                is_value_valid = True
+                                if v is not None and v != '':
+                                    if str(v) not in safe_options:
+                                        is_value_valid = False
+                                        self.validation_errors.add(error_key)
+                                    else:
+                                        self.validation_errors.discard(error_key)
+                                else:
+                                    self.validation_errors.discard(error_key)
+                                
+                                if v not in safe_options:
+                                    safe_options.append(v)
+                                
+                                if getattr(self, 'save_btn', None):
+                                    if self.validation_errors:
+                                        self.save_btn.disable()
+                                    else:
+                                        self.save_btn.enable()
+                                
+                                validation_dict = {}
+                                if not is_value_valid:
+                                    validation_dict = {'Value deleted from reference': lambda x: False}
+                                
+                                inp = ui.select(safe_options, value=v, label=label_text, validation=validation_dict).classes('flex-grow').on_value_change(make_on_change())
+                                if not is_value_valid:
+                                    inp.props('error error-message="Value deleted from reference"')
+                        else:
+                            safe_options = list(options)
+                            if v not in safe_options: safe_options.append(v)
+                            inp = ui.select(safe_options, value=v, label=label_text).classes('flex-grow').on_value_change(make_on_change())
                     elif isinstance(v, bool):
                         inp = ui.switch(text=label_text, value=v).on_value_change(make_on_change())
                     elif meta.get('type') == 'path':

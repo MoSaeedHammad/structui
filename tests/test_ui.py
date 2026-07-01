@@ -77,6 +77,25 @@ def test_update_save_btn_state(mock_app_state, mock_schema_manager):
     mock_app_state.is_dirty = True
     ui_inst.update_save_btn_state()
 
+def test_update_save_btn_state_does_not_redraw_editor(mock_app_state, mock_schema_manager):
+    """Regression test: update_save_btn_state must not rebuild the editor.
+
+    The editor is fully torn down and recreated on every redraw, which
+    destroys and recreates input widgets. Since this is called from every
+    keystroke handler (text/number/hex inputs), triggering a redraw here
+    caused inputs to lose focus mid-typing.
+    """
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.save_btn = MagicMock()
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+    ui_inst.selected_path = {"value": "root/config.yaml"}
+
+    with patch.object(ui_inst, 'draw_editor') as mock_draw_editor:
+        ui_inst.update_save_btn_state()
+        mock_draw_editor.assert_not_called()
+        ui_inst.editor_scroll_area.clear.assert_not_called()
+
 def test_refresh_tree_and_editor(mock_app_state, mock_schema_manager):
     ui_inst = StructUI(mock_app_state, mock_schema_manager)
     ui_inst.tree = MagicMock()
