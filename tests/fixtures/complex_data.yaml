@@ -1,0 +1,10 @@
+container_A:
+  string_prop: 'hello'
+  number_prop: 42
+  child_list:
+    - id: 'item1'
+      flag: true
+    - name: 'item2'
+      value: 100
+  nested_dict:
+    inner_string: 'inner'
