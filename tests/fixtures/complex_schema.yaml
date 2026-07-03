@@ -1,0 +1,29 @@
+root:
+  type: dict
+  allowed_children: [network, diagnostics]
+network:
+  type: dict
+  allowed_children: [ecu_list]
+ecu_list:
+  type: list
+  list_item_type: ecu
+ecu:
+  type: dict
+  allowed_children: [id, active, timeout]
+  required: true
+id:
+  type: string
+  required: true
+active:
+  type: boolean
+timeout:
+  type: number
+diagnostics:
+  type: dict
+  allowed_children: [mode, errors]
+mode:
+  type: string
+  options: [normal, extended, programming]
+errors:
+  type: list
+  list_item_type: string

@@ -1,0 +1,31 @@
+root:
+  type: dict
+  allowed_children: [vehicles]
+vehicles:
+  type: list
+  list_item_types: [car, truck, motorcycle]
+car:
+  type: dict
+  allowed_children: [make, model, doors]
+  label_key: make
+truck:
+  type: dict
+  allowed_children: [make, payload, is_electric]
+  label_key: make
+motorcycle:
+  type: dict
+  allowed_children: [make, cc]
+  label_key: make
+make:
+  type: string
+  required: true
+model:
+  type: string
+doors:
+  type: integer
+payload:
+  type: number
+is_electric:
+  type: boolean
+cc:
+  type: integer
