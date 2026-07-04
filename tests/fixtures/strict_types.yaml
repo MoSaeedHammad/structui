@@ -1,0 +1,23 @@
+root:
+  type: dict
+  allowed_children: [my_bool, my_int, my_float, my_string, my_enum, my_path, my_hex]
+my_bool:
+  type: boolean
+  required: true
+my_int:
+  type: integer
+  required: true
+my_float:
+  type: float
+  required: true
+my_string:
+  type: string
+  required: true
+my_enum:
+  type: string
+  options: [opt1, opt2, opt3]
+my_path:
+  type: path
+  extensions: [.txt, .md]
+my_hex:
+  type: number
