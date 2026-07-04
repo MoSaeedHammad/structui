@@ -43,4 +43,4 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest --cov=src/structui --cov-report=xml --cov-fail-under=85 tests/
+          pytest --cov=src/structui --cov-report=xml --cov-fail-under=100 tests/
