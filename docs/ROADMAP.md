@@ -11,7 +11,7 @@ This document outlines the strategic vision and phased development approach for 
 
 ## Phase 2: Test & Automate
 **Focus:** Reliability, CI/CD, and Documentation.
-- Achieve 85%+ test coverage across the entire codebase using `pytest` and `pytest-mock`.
+- Achieve 100% test coverage across the entire codebase using `pytest` and `pytest-mock`.
 - Fully functional GitHub Actions for Continuous Integration (Linting, Typing, Testing) and Continuous Deployment (PyPI Publishing).
 - Implement automated documentation generation using `mkdocs` or `sphinx`.
 
