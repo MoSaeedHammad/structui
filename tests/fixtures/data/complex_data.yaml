@@ -1,0 +1,16 @@
+network_config:
+  hostname: "test-server-01"
+  gateway: "192.168.1.1"
+  timeout_ms: 5000
+  interfaces:
+    - ethernet:
+        name: "eth0"
+        mac_address: "00:1A:2B:3C:4D:5E"
+        enabled: true
+    - vlan:
+        name: "vlan100"
+        vlan_id: 100
+        enabled: true
+    - loopback:
+        name: "lo"
+        ip_address: "127.0.0.1"
