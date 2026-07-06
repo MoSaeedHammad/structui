@@ -1,0 +1,65 @@
+root:
+  type: dict
+  allowed_children: [network_config]
+network_config:
+    type: dict
+    desc: "Network topology configuration"
+    required: true
+    allowed_children:
+      - hostname
+      - interfaces
+      - gateway
+      - proxy
+      - timeout_ms
+hostname:
+    type: string
+    required: true
+    desc: "Machine hostname"
+interfaces:
+    type: list
+    desc: "List of network interfaces"
+    list_item_types:
+      - ethernet
+      - vlan
+      - loopback
+ethernet:
+    type: dict
+    desc: "Physical ethernet interface"
+    allowed_children:
+      - name
+      - mac_address
+      - enabled
+vlan:
+    type: dict
+    desc: "VLAN virtual interface"
+    allowed_children:
+      - name
+      - vlan_id
+      - enabled
+loopback:
+    type: dict
+    desc: "Loopback interface"
+    allowed_children:
+      - name
+      - ip_address
+name:
+    type: string
+    required: true
+mac_address:
+    type: string
+enabled:
+    type: boolean
+    required: true
+vlan_id:
+    type: integer
+    required: true
+ip_address:
+    type: string
+gateway:
+    type: string
+proxy:
+    type: string
+    required: false
+timeout_ms:
+    type: number
+    required: false
