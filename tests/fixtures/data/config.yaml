@@ -1,0 +1,13 @@
+core_config:
+  app_name: "TestApp"
+  version: 1.0
+  endpoints:
+    - url: "https://api.example.com/v1"
+      method: "GET"
+      timeout: 30
+    - url: "https://api.example.com/v2"
+      method: "POST"
+      timeout: 60
+user_settings:
+  theme: "dark"
+  notifications: true
