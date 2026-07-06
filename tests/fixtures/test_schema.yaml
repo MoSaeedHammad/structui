@@ -1,0 +1,36 @@
+root:
+  type: dict
+  allowed_children: [core_config, user_settings]
+core_config:
+  type: dict
+  required: true
+  allowed_children: [app_name, version, endpoints]
+app_name:
+  type: string
+  required: true
+version:
+  type: number
+  required: true
+endpoints:
+  type: list
+  list_item_type: endpoint_item
+endpoint_item:
+  type: dict
+  allowed_children: [url, method, timeout]
+  label_key: url
+url:
+  type: string
+  required: true
+method:
+  type: string
+  options: [GET, POST, PUT, DELETE]
+timeout:
+  type: integer
+user_settings:
+  type: dict
+  allowed_children: [theme, notifications]
+theme:
+  type: string
+  options: [light, dark, auto]
+notifications:
+  type: boolean
