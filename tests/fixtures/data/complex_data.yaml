@@ -1,0 +1,7 @@
+data_item:
+  level1:
+    level2:
+      final_val: 100
+  list_val:
+    - "a"
+    - "b"
