@@ -1,0 +1,22 @@
+complex_nested:
+  type: container
+  properties:
+    level1:
+      type: container
+      properties:
+        level2:
+          type: container
+          properties:
+            final_val:
+              type: number
+              default: 42
+    list_val:
+      type: list
+      items:
+        type: string
+root:
+  type: container
+  properties:
+    data_item:
+      type: container
+      reference: complex_nested
