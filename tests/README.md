@@ -6,7 +6,8 @@ This specification mandates the testing philosophy and architectural patterns fo
 ## Core Requirements
 
 - **Framework:** Use `pytest` as the primary testing framework.
-- **Coverage Goal:** A minimum of **85% line coverage** is strictly enforced via `pytest-cov`. Commits dropping coverage below this threshold will fail the CI pipeline.
+
+- **Coverage Goal:** A minimum of **100% line coverage** is strictly enforced via `pytest-cov`. Commits dropping coverage below this threshold will fail the CI pipeline.
 
 ## Testing Strategies
 
