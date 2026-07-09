@@ -1,0 +1,23 @@
+network:
+  ecu:
+    - ip_address: "192.168.1.1"
+      port: 8080
+      max_connections: 50
+      is_active: true
+      flags:
+        can_send: true
+        can_receive: true
+        protocol_version: 2
+      id_value: 0x100
+    - ip_address: "10.0.0.1"
+      port: 9000
+      max_connections: 5
+      is_active: false
+      flags:
+        can_send: false
+        can_receive: true
+        protocol_version: 1
+      id_value: 0x200
+diagnostics:
+  log_level: "DEBUG"
+  enabled: true

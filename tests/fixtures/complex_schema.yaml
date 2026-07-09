@@ -1,0 +1,57 @@
+root:
+  type: container
+  allowed_children: [network, diagnostics]
+
+network:
+  type: container
+  allowed_children: [ecu]
+
+ecu:
+  type: list
+  list_item_type: ecu_config
+
+ecu_config:
+  type: dict
+  allowed_children: [ip_address, port, max_connections, is_active, flags, id_value]
+
+ip_address:
+  type: string
+
+port:
+  type: number
+
+max_connections:
+  type: number
+  default: 10
+
+is_active:
+  type: boolean
+  default: true
+
+flags:
+  type: dict
+  allowed_children: [can_send, can_receive, protocol_version]
+
+can_send:
+  type: boolean
+
+can_receive:
+  type: boolean
+
+protocol_version:
+  type: number
+
+id_value:
+  type: number
+
+diagnostics:
+  type: dict
+  allowed_children: [log_level, enabled]
+
+log_level:
+  type: string
+  default: "INFO"
+
+enabled:
+  type: boolean
+  default: true
