@@ -65,7 +65,7 @@ def test_hex_decimal_callbacks():
     ui_inst.save_btn = MagicMock()
 
     mock_input_callbacks = {}
-    mock_number_callbacks = {}
+    mock_input_callbacks = {}
     mock_switch_callbacks = {}
     mock_validations = {}
 
@@ -95,23 +95,24 @@ def test_hex_decimal_callbacks():
         def input_side_effect(*args, **kwargs):
             mock_input_ret = MagicMock()
             if 'validation' in kwargs:
-                mock_validations['input'] = kwargs['validation']
+                mock_validations.update(kwargs['validation'])
             def on_value_change(cb):
                 lbl = kwargs.get('label', args[0] if args else None)
                 mock_input_callbacks[lbl] = cb
                 return mock_input_ret
             mock_input_ret.on_value_change = on_value_change
             mock_input_ret.classes.return_value = mock_input_ret
+            mock_input_ret.props.return_value = mock_input_ret
             return mock_input_ret
         mock_input.side_effect = input_side_effect
 
         def number_side_effect(*args, **kwargs):
             mock_number_ret = MagicMock()
             if 'validation' in kwargs:
-                mock_validations['number'] = kwargs['validation']
+                mock_validations.update(kwargs['validation'])
             def on_value_change(cb):
                 lbl = kwargs.get('label', args[0] if args else None)
-                mock_number_callbacks[lbl] = cb
+                mock_input_callbacks[lbl] = cb
                 return mock_number_ret
             mock_number_ret.on_value_change = on_value_change
             mock_number_ret.classes.return_value = mock_number_ret
@@ -120,13 +121,13 @@ def test_hex_decimal_callbacks():
 
         ui_inst.draw_editor("root")
 
-    val_hex = mock_validations['input']['Invalid hex']
+    val_hex = mock_validations['Invalid hex']
     assert val_hex('') is True
     assert val_hex('invalid') == 'Invalid hex string'
     assert val_hex('0xffffffffffffffffff') == 'Exceeds 64-bit unsigned limit'
     assert val_hex('0x1A') is True
 
-    val_num = mock_validations['number']['Invalid']
+    val_num = mock_validations['Invalid']
     assert val_num('') is True
     assert val_num('invalid') == 'Invalid number'
     assert val_num('18446744073709551616') == 'Exceeds platform size limits'
@@ -138,7 +139,7 @@ def test_hex_decimal_callbacks():
     hex_cb(MagicMock(value='0x10'))
     hex_cb(MagicMock(value='0xffffffffffffffffff'))
 
-    num_cb = mock_number_callbacks['dec_val']
+    num_cb = mock_input_callbacks['dec_val']
     num_cb(MagicMock(value=''))
     num_cb(MagicMock(value='invalid'))
     num_cb(MagicMock(value='10.5'))
@@ -198,7 +199,7 @@ def test_hex_decimal_exceptions():
 
     mock_validations = {}
     mock_input_callbacks = {}
-    mock_num_callbacks = {}
+    mock_input_callbacks = {}
 
     with patch('structui.ui.ui.switch'), \
          patch('structui.ui.ui.input') as mock_input, \
@@ -216,28 +217,30 @@ def test_hex_decimal_exceptions():
         def input_side_effect(*args, **kwargs):
             mock_input_ret = MagicMock()
             if 'validation' in kwargs:
-                mock_validations['input'] = kwargs['validation']
+                mock_validations.update(kwargs['validation'])
             def on_value_change(cb):
                 lbl = kwargs.get('label', args[0] if args else None)
                 mock_input_callbacks[lbl] = cb
                 return mock_input_ret
             mock_input_ret.on_value_change = on_value_change
             mock_input_ret.classes.return_value = mock_input_ret
+            mock_input_ret.props.return_value = mock_input_ret
             return mock_input_ret
         mock_input.side_effect = input_side_effect
 
         def num_side_effect(*args, **kwargs):
             mock_num_ret = MagicMock()
             if 'validation' in kwargs:
-                mock_validations['number'] = kwargs['validation']
+                mock_validations.update(kwargs['validation'])
             def on_value_change(cb):
                 lbl = kwargs.get('label', args[0] if args else None)
-                mock_num_callbacks[lbl] = cb
+                mock_input_callbacks[lbl] = cb
                 return mock_num_ret
             mock_num_ret.on_value_change = on_value_change
             mock_num_ret.classes.return_value = mock_num_ret
+            mock_num_ret.props.return_value = mock_num_ret
             return mock_num_ret
-        mock_num.side_effect = num_side_effect
+        mock_input.side_effect = num_side_effect
 
         ui_inst.draw_editor("root")
 
@@ -251,7 +254,7 @@ def test_hex_decimal_exceptions():
         with patch('builtins.int', side_effect=ValueError):
             hex_cb(MagicMock(value='0x10'))
 
-    num_cb = mock_num_callbacks['dec_val']
+    num_cb = mock_input_callbacks['dec_val']
     with patch('builtins.float', side_effect=ValueError):
         num_cb(MagicMock(value='20'))
 
@@ -299,6 +302,7 @@ def test_primitive_handlers_and_file_picker():
                 return mock_input_ret
             mock_input_ret.on_value_change = on_value_change
             mock_input_ret.classes.return_value = mock_input_ret
+            mock_input_ret.props.return_value = mock_input_ret
             return mock_input_ret
         mock_input.side_effect = input_side_effect
 
@@ -428,16 +432,17 @@ def test_ui_hex_valueerror_coverage():
         def input_side_effect(*args, **kwargs):
             mock_input_ret = MagicMock()
             if 'validation' in kwargs:
-                mock_validations['input'] = kwargs['validation']
+                mock_validations.update(kwargs['validation'])
             def on_value_change(cb):
                 return mock_input_ret
             mock_input_ret.on_value_change = on_value_change
             mock_input_ret.classes.return_value = mock_input_ret
+            mock_input_ret.props.return_value = mock_input_ret
             return mock_input_ret
         mock_input.side_effect = input_side_effect
         ui_inst.draw_editor("root")
 
-    val_hex = mock_validations['input']['Invalid hex']
+    val_hex = mock_validations['Invalid hex']
     original_match = re.match
     def mock_match(pattern, string):
         return True
@@ -472,6 +477,7 @@ def test_ui_number_primitive_float_change():
                 return mock_input_ret
             mock_input_ret.on_value_change = on_value_change
             mock_input_ret.classes.return_value = mock_input_ret
+            mock_input_ret.props.return_value = mock_input_ret
             return mock_input_ret
         mock_input.side_effect = input_side_effect
 
@@ -483,8 +489,9 @@ def test_ui_number_primitive_float_change():
                 return mock_num_ret
             mock_num_ret.on_value_change = on_value_change
             mock_num_ret.classes.return_value = mock_num_ret
+            mock_num_ret.props.return_value = mock_num_ret
             return mock_num_ret
-        mock_num.side_effect = num_side_effect
+        mock_input.side_effect = num_side_effect
 
         ui_inst.draw_editor("root")
 
@@ -518,6 +525,7 @@ def test_ui_number_primitive_float_valid_change():
                 return mock_input_ret
             mock_input_ret.on_value_change = on_value_change
             mock_input_ret.classes.return_value = mock_input_ret
+            mock_input_ret.props.return_value = mock_input_ret
             return mock_input_ret
         mock_input.side_effect = input_side_effect
 
@@ -529,8 +537,9 @@ def test_ui_number_primitive_float_valid_change():
                 return mock_num_ret
             mock_num_ret.on_value_change = on_value_change
             mock_num_ret.classes.return_value = mock_num_ret
+            mock_num_ret.props.return_value = mock_num_ret
             return mock_num_ret
-        mock_num.side_effect = num_side_effect
+        mock_input.side_effect = num_side_effect
 
         ui_inst.draw_editor("root")
 
@@ -565,8 +574,9 @@ def test_ui_number_primitive_float_valid_change2():
                 return mock_num_ret
             mock_num_ret.on_value_change = on_value_change
             mock_num_ret.classes.return_value = mock_num_ret
+            mock_num_ret.props.return_value = mock_num_ret
             return mock_num_ret
-        mock_num.side_effect = num_side_effect
+        mock_input.side_effect = num_side_effect
 
         ui_inst.draw_editor("root")
 
@@ -620,6 +630,7 @@ def test_ui_number_primitive_float_dot_change():
                 return mock_input_ret
             mock_input_ret.on_value_change = on_value_change
             mock_input_ret.classes.return_value = mock_input_ret
+            mock_input_ret.props.return_value = mock_input_ret
             return mock_input_ret
         mock_input.side_effect = input_side_effect
 
@@ -631,8 +642,9 @@ def test_ui_number_primitive_float_dot_change():
                 return mock_num_ret
             mock_num_ret.on_value_change = on_value_change
             mock_num_ret.classes.return_value = mock_num_ret
+            mock_num_ret.props.return_value = mock_num_ret
             return mock_num_ret
-        mock_num.side_effect = num_side_effect
+        mock_input.side_effect = num_side_effect
 
         ui_inst.draw_editor("root")
 
@@ -676,6 +688,7 @@ def test_ui_number_primitive_float_dot_missing():
                 return mock_input_ret
             mock_input_ret.on_value_change = on_value_change
             mock_input_ret.classes.return_value = mock_input_ret
+            mock_input_ret.props.return_value = mock_input_ret
             return mock_input_ret
         mock_input.side_effect = input_side_effect
 
@@ -687,8 +700,9 @@ def test_ui_number_primitive_float_dot_missing():
                 return mock_num_ret
             mock_num_ret.on_value_change = on_value_change
             mock_num_ret.classes.return_value = mock_num_ret
+            mock_num_ret.props.return_value = mock_num_ret
             return mock_num_ret
-        mock_num.side_effect = num_side_effect
+        mock_input.side_effect = num_side_effect
 
         ui_inst.draw_editor("root")
 
@@ -727,6 +741,7 @@ def test_ui_number_primitive_float_dot_hit():
                 return mock_input_ret
             mock_input_ret.on_value_change = on_value_change
             mock_input_ret.classes.return_value = mock_input_ret
+            mock_input_ret.props.return_value = mock_input_ret
             return mock_input_ret
         mock_input.side_effect = input_side_effect
 
@@ -739,8 +754,9 @@ def test_ui_number_primitive_float_dot_hit():
                 return mock_num_ret
             mock_num_ret.on_value_change = on_value_change
             mock_num_ret.classes.return_value = mock_num_ret
+            mock_num_ret.props.return_value = mock_num_ret
             return mock_num_ret
-        mock_num.side_effect = num_side_effect
+        mock_input.side_effect = num_side_effect
 
         ui_inst.draw_editor("root")
 
@@ -778,8 +794,9 @@ def test_ui_number_primitive_float_dot_hit_fix():
                 return mock_num_ret
             mock_num_ret.on_value_change = on_value_change
             mock_num_ret.classes.return_value = mock_num_ret
+            mock_num_ret.props.return_value = mock_num_ret
             return mock_num_ret
-        mock_num.side_effect = num_side_effect
+        mock_input.side_effect = num_side_effect
 
         ui_inst.draw_editor("root")
 
