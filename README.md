@@ -52,5 +52,6 @@ pip install -e . pytest pytest-cov pytest-asyncio pyyaml nicegui
 Then, run `pytest` with coverage reporting:
 
 ```bash
-PYTHONPATH=src python3 -m pytest tests/ --cov=structui --cov-report=term-missing
+PYTHONPATH=src python3 -m pytest tests/ --cov=structui --cov-fail-under=100 --cov-report=term-missing
+mypy src/structui/
 ```
