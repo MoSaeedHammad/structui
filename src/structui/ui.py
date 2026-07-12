@@ -124,6 +124,23 @@ class StructUI:
 
         self.draw_editor(self.selected_path["value"])
 
+    def _clear_hex_display_cache(self):
+        """Hex/decimal display mode is cached per field, keyed by its (index-based) path.
+        Deleting a list item shifts sibling indices, so a stale cache entry could make an
+        unrelated field inherit a deleted item's hex toggle. Reset on any structural change."""
+        for attr in [a for a in vars(self) if a.startswith('_is_hex_')]:
+            delattr(self, attr)
+
+    def update_validation_state(self, error_key: str, is_valid: bool):
+        """Shared bookkeeping for per-field validation, used by dynamic-select,
+        hex, and number inputs so a value fix is reflected live (without
+        requiring a full editor redraw)."""
+        if is_valid:
+            self.validation_errors.discard(error_key)
+        else:
+            self.validation_errors.add(error_key)
+        self.update_save_btn_state()
+
     def update_save_btn_state(self):
         if getattr(self, 'save_btn', None):
             if getattr(self, 'validation_errors', None):
@@ -278,6 +295,7 @@ class StructUI:
                             parent_node = self.state.get_data_by_path(parent_path)
                             if isinstance(parent_node, dict): parent_node.pop(node_key, None)
                             elif isinstance(parent_node, list): parent_node.pop(int(node_key))
+                            self._clear_hex_display_cache()
                             self.state.commit()
                             self.selected_path["value"] = parent_path
                             self.refresh_tree_and_editor()
@@ -334,35 +352,30 @@ class StructUI:
                                     ui.label("Path evaluation failed").classes('text-red-500 text-xs font-bold').tooltip(str(ex))
                                     safe_options = []
                                 
-                                # Check if currently selected value is deleted/invalid
+                                # Check if currently selected value is deleted/invalid.
+                                # Dynamic options resolve to strings only (see clean_dynamic_options),
+                                # so normalize the current value to match rather than comparing raw types.
                                 error_key = f"{path}/{k}"
-                                if not hasattr(self, 'validation_errors'):
-                                    self.validation_errors = set()
-                                
-                                is_value_valid = True
-                                if v is not None and v != '':
-                                    if str(v) not in safe_options:
-                                        is_value_valid = False
-                                        self.validation_errors.add(error_key)
-                                    else:
-                                        self.validation_errors.discard(error_key)
-                                else:
-                                    self.validation_errors.discard(error_key)
-                                
-                                if v not in safe_options:
-                                    safe_options.append(v)
-                                
-                                if getattr(self, 'save_btn', None):
-                                    if self.validation_errors:
-                                        self.save_btn.disable()
-                                    else:
-                                        self.save_btn.enable()
-                                
-                                validation_dict = {}
+                                select_value = str(v) if v is not None and v != '' else v
+                                resolved_options = list(safe_options)  # valid choices, before any fallback append
+
+                                is_value_valid = select_value is None or select_value == '' or select_value in resolved_options
                                 if not is_value_valid:
-                                    validation_dict = {'Value deleted from reference': lambda x: False}
-                                
-                                inp = ui.select(safe_options, value=v, label=label_text, validation=validation_dict).classes('flex-grow').on_value_change(make_on_change())
+                                    safe_options.append(select_value)
+                                self.update_validation_state(error_key, is_value_valid)
+
+                                def validate_dynamic_select(val, err_key=error_key, opts=resolved_options):
+                                    # Re-validates live on every change so fixing the value clears the
+                                    # error without requiring a full editor redraw. Checked against the
+                                    # resolved reference options only, not the display list (which may
+                                    # still contain a stale value appended just so it can be shown/selected).
+                                    ok = val is None or val == '' or val in opts
+                                    self.update_validation_state(err_key, ok)
+                                    return ok
+
+                                validation_dict = {'Value deleted from reference': validate_dynamic_select}
+
+                                inp = ui.select(safe_options, value=select_value, label=label_text, validation=validation_dict).classes('flex-grow').on_value_change(make_on_change())
                                 if not is_value_valid:
                                     inp.props('error error-message="Value deleted from reference"')
                         else:
@@ -383,23 +396,31 @@ class StructUI:
                         inp = ui.input(label=label_text, value=str(v)).classes('flex-grow').on_value_change(make_on_change())
                         ui.button(icon='folder_open', on_click=pick_file).props('flat round size=sm').tooltip('Select File')
                     elif meta.get('type') in ('number', 'integer', 'float') or (isinstance(v, (int, float)) and type(v) is not bool):
+                        # Hex display only makes sense for integers; a float truncated through
+                        # int() would silently lose its fractional part, so floats never get the toggle.
+                        is_float_value = isinstance(v, float)
+
                         # Determine if we should display as hex
                         path_suffix = path.replace('/', '_')
                         hex_attr = f"_is_hex_{k}_{path_suffix}"
-                        is_hex = getattr(self, hex_attr, None)
-                        if is_hex is None:
-                            is_hex = isinstance(v, HexInt)
-                            setattr(self, hex_attr, is_hex)
+                        if is_float_value:
+                            is_hex = False
+                        else:
+                            is_hex = getattr(self, hex_attr, None)
+                            if is_hex is None:
+                                is_hex = isinstance(v, HexInt)
+                                setattr(self, hex_attr, is_hex)
 
-                        # Toggle handler
-                        def make_hex_toggle(prop_key=k, attr=hex_attr):
-                            def handler(e):
-                                setattr(self, attr, bool(e.value))
-                                self.refresh_tree_and_editor()
-                            return handler
+                        if not is_float_value:
+                            # Toggle handler
+                            def make_hex_toggle(prop_key=k, attr=hex_attr):
+                                def handler(e):
+                                    setattr(self, attr, bool(e.value))
+                                    self.refresh_tree_and_editor()
+                                return handler
 
-                        # Switch for hex toggle
-                        ui.switch(text='Hex', value=is_hex).on_value_change(make_hex_toggle())
+                            # Switch for hex toggle
+                            ui.switch(text='Hex', value=is_hex).on_value_change(make_hex_toggle())
 
                         if not hasattr(self, 'validation_errors'):
                             self.validation_errors = set()
@@ -529,6 +550,7 @@ class StructUI:
                         def delete_prop(pk=k, pd=parent_node):
                             if isinstance(pd, dict) and pk in pd: pd.pop(pk, None)
                             elif isinstance(pd, list) and int(pk) < len(pd): pd.pop(int(pk))
+                            self._clear_hex_display_cache()
                             self.state.commit()
                             self.refresh_tree_and_editor()
                         ui.button(icon='delete_outline', color='red-400', on_click=delete_prop).props('flat round size=sm').tooltip('Remove Property').classes('mt-2')

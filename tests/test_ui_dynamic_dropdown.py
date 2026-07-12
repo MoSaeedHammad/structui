@@ -170,15 +170,24 @@ def test_draw_editor_value_deleted_validation(mock_app_state, mock_schema_manage
          patch('structui.ui.ui.column'):
              
         ui_inst.draw_editor("root/routing.yaml")
-        
+
         assert f"root/routing.yaml/default_interface" in ui_inst.validation_errors
-        
+
         mock_select.assert_called_once()
         args, kwargs = mock_select.call_args
         assert "deleted_itf" in args[0]
         assert "validation" in kwargs
         val_fn = kwargs["validation"]["Value deleted from reference"]
-        assert val_fn(None) is False
+
+        # Still-missing value: reports invalid, error stays recorded.
+        assert val_fn("deleted_itf") is False
+        assert "root/routing.yaml/default_interface" in ui_inst.validation_errors
+
+        # Picking a value that does exist in the reference must clear the error live,
+        # without requiring a full editor redraw (regression test for the Save button
+        # getting stuck disabled after fixing a dynamic dropdown value).
+        assert val_fn("eth0") is True
+        assert "root/routing.yaml/default_interface" not in ui_inst.validation_errors
 
 
 def test_draw_editor_path_evaluation_exception(mock_app_state, mock_schema_manager):
@@ -206,6 +215,39 @@ def test_draw_editor_path_evaluation_exception(mock_app_state, mock_schema_manag
         
         any_failed_label = any("Path evaluation failed" in str(arg[0]) for arg, _ in mock_label.call_args_list)
         assert any_failed_label
+
+
+def test_draw_editor_dynamic_select_nonstring_value_no_duplicate(mock_app_state, mock_schema_manager):
+    """Regression test: a non-string current value (e.g. an int loaded from YAML) that
+    matches a resolved (string) dynamic option must not be appended a second time into
+    the options list, and must not be flagged invalid."""
+    mock_app_state.config_data["connections.yaml"][0]["interfaces"].append({"itf_name": "100"})
+
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+    ui_inst.save_btn = MagicMock()
+
+    mock_schema_manager.get_meta.side_effect = lambda k: {
+        "type": "string",
+        "options": "connections[*].interfaces[*].itf_name"
+    } if k == "default_interface" else {}
+
+    mock_app_state.get_data_by_path.side_effect = lambda path: {
+        "root/routing.yaml": {"default_interface": 100}
+    }.get(path, None)
+
+    with patch('structui.ui.ui.select') as mock_select, \
+         patch('structui.ui.ui.row'), \
+         patch('structui.ui.ui.label'), \
+         patch('structui.ui.ui.column'):
+
+        ui_inst.draw_editor("root/routing.yaml")
+
+        assert "root/routing.yaml/default_interface" not in ui_inst.validation_errors
+
+        args, kwargs = mock_select.call_args
+        assert args[0].count("100") == 1
 
 
 def test_draw_editor_value_empty(mock_app_state, mock_schema_manager):

@@ -117,3 +117,15 @@ def test_hex_int_loading_and_saving(tmp_path):
     assert "hex_val: 0x1a" in saved_content or "hex_val: 0x1A" in saved_content
     assert "normal_val: 26" in saved_content
     assert "neg_hex_val: 0xfffffffffffffff0" in saved_content
+
+def test_hex_int_constructor_does_not_leak_into_global_yaml():
+    """Regression test: structui's hex-int parsing must be scoped to its own Loader,
+    not registered on the shared yaml.SafeLoader/yaml.Loader classes, so importing
+    structui doesn't change plain yaml.safe_load() behavior for unrelated callers."""
+    import yaml
+    import structui.parser  # noqa: F401 (ensures the module, and any global registration, is loaded)
+    from structui.parser import HexInt
+
+    loaded = yaml.safe_load("hex_val: 0x1A\n")
+    assert not isinstance(loaded["hex_val"], HexInt)
+    assert loaded["hex_val"] == 26
