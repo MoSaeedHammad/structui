@@ -143,12 +143,18 @@ messages:
   type: list
   desc: Definitions of incoming network messages.
   list_item_type: message
+  
 
 message:
   type: container
   label_key: name
   desc: A single message definition.
-  allowed_children: [name, length, byte_order, no_data_timeout_ms, raw_data_format, signals]
+  allowed_children: [frame_name, name, length, byte_order, no_data_timeout_ms, raw_data_format, signals]
+
+frame_name:
+  type: string
+  desc: The source network frame (from connections.yaml) that this message decodes.
+  options: "connections[*].interfaces[*].frames[*].name"
 
 signals:
   type: list

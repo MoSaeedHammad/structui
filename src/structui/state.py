@@ -1,6 +1,7 @@
 import os
 import glob
 import copy
+import re
 from typing import Dict, Any, List
 from .schema import SchemaManager
 from .parser import get_parser
@@ -137,3 +138,82 @@ class AppState:
                     
         self.last_saved_index = self.history_index
         self.is_dirty = False
+
+
+def evaluate_dynamic_path(data: Any, path: str) -> List[Any]:
+    """Recursively resolves a dot-notated path string (potentially containing [*] wildcards)
+    against a data tree (dictionary or list).
+    """
+    if not path:
+        return []
+        
+    # Helper to parse path into steps
+    def parse_path(path_str: str) -> List[tuple]:
+        parts = path_str.split('.')
+        steps = []
+        for part in parts:
+            if not part:
+                continue
+            # Match segment name and optional [*]
+            match = re.match(r'^([^\[]+)(?:\[\*\])?$', part)
+            if not match:
+                if part == '[*]':
+                    steps.append(('wildcard', None))
+                    continue
+                raise ValueError(f"Invalid path segment: {part}")
+            key = match.group(1)
+            steps.append(('key', key))
+            if '[*]' in part:
+                steps.append(('wildcard', None))
+        return steps
+
+    try:
+        parsed_steps = parse_path(path)
+    except ValueError:
+        return []
+
+    def evaluate_steps(curr_data: Any, steps: List[tuple]) -> List[Any]:
+        if not steps:
+            return [curr_data]
+            
+        step_type, step_val = steps[0]
+        next_steps = steps[1:]
+        
+        if step_type == 'key':
+            if isinstance(curr_data, dict):
+                # Check for exact key
+                if step_val in curr_data:
+                    return evaluate_steps(curr_data[step_val], next_steps)
+                # Check for key with extension (e.g. connections -> connections.yaml)
+                for k, v in curr_data.items():
+                    if k == step_val or (isinstance(k, str) and k.startswith(f"{step_val}.")):
+                        return evaluate_steps(v, next_steps)
+                return []
+            else:
+                return []
+        elif step_type == 'wildcard':
+            if isinstance(curr_data, list):
+                res = []
+                for item in curr_data:
+                    res.extend(evaluate_steps(item, next_steps))
+                return res
+            else:
+                return []
+        return []
+
+    return evaluate_steps(data, parsed_steps)
+
+
+def clean_dynamic_options(options: List[Any]) -> List[str]:
+    """Filters out null and empty values, converts to string, preserves order,
+    and deduplicates a list of options.
+    """
+    seen = set()
+    cleaned = []
+    for opt in options:
+        if opt is not None and opt != "":
+            opt_str = str(opt)
+            if opt_str not in seen:
+                seen.add(opt_str)
+                cleaned.append(opt_str)
+    return cleaned

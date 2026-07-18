@@ -23,14 +23,17 @@ def custom_int_constructor(loader, node):
         return HexInt(val)
     return val
 
-yaml.SafeLoader.add_constructor('tag:yaml.org,2002:int', custom_int_constructor)
-yaml.Loader.add_constructor('tag:yaml.org,2002:int', custom_int_constructor)
-
 def hex_int_representer(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:int', str(data))
 
-yaml.SafeDumper.add_representer(HexInt, hex_int_representer)
-yaml.Dumper.add_representer(HexInt, hex_int_representer)
+class _StructUILoader(yaml.SafeLoader):
+    """Scoped loader so HexInt parsing doesn't leak into other yaml.safe_load() callers in the process."""
+
+class _StructUIDumper(yaml.Dumper):
+    """Scoped dumper so HexInt formatting doesn't leak into other yaml.dump() callers in the process."""
+
+_StructUILoader.add_constructor('tag:yaml.org,2002:int', custom_int_constructor)
+_StructUIDumper.add_representer(HexInt, hex_int_representer)
 
 class DataParser(ABC):
     """Abstract base class for format-agnostic configuration parsing."""
@@ -47,14 +50,14 @@ class YamlParser(DataParser):
     def load(self, filepath: str, schema: Optional[Dict[str, Any]] = None) -> Any:
         try:
             with open(filepath, 'r') as f:
-                return yaml.safe_load(f)
+                return yaml.load(f, Loader=_StructUILoader)
         except Exception as e:
             print(f"YAML Load Error ({filepath}): {e}")
             return None
-            
+
     def save(self, filepath: str, data: Any):
         with open(filepath, 'w') as f:
-            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+            yaml.dump(data, f, Dumper=_StructUIDumper, default_flow_style=False, sort_keys=False)
 
 class JsonParser(DataParser):
     def load(self, filepath: str, schema: Optional[Dict[str, Any]] = None) -> Any:

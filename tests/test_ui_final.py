@@ -143,6 +143,41 @@ def test_hex_toggle_handlers(mock_app_state, mock_schema_manager):
                 assert getattr(ui_inst, '_is_hex_int_key_root') == True
                 ui_inst.refresh_tree_and_editor.assert_called()
 
+def test_hex_switch_not_shown_for_float(mock_app_state, mock_schema_manager):
+    """Regression test: toggling Hex on a float truncates the fractional part via
+    int(v) with no warning, so the switch must never be offered for float values."""
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    ui_inst.selected_path = {"value": "root"}
+    ui_inst.editor_scroll_area = MagicMock()
+    ui_inst.footer_pane = MagicMock()
+    mock_app_state.get_data_by_path.return_value = {"float_key": 3.75}
+
+    with patch('structui.ui.ui.switch') as mock_switch, \
+         patch('structui.ui.ui.input'), patch('structui.ui.ui.number'), \
+         patch('structui.ui.ui.row'), patch('structui.ui.ui.column'), \
+         patch('structui.ui.ui.label'), patch('structui.ui.ui.icon'), \
+         patch('structui.ui.ui.button'), patch('structui.ui.ui.separator'), \
+         patch('structui.ui.ui.menu'), patch('structui.ui.ui.menu_item'):
+
+        mock_schema_manager.get_meta.return_value = {"type": "not_integer"}
+        ui_inst.draw_editor("root")
+
+        hex_switch_calls = [c for c in mock_switch.call_args_list if c.kwargs.get('text') == 'Hex']
+        assert hex_switch_calls == []
+
+def test_hex_display_cache_cleared_on_delete(mock_app_state, mock_schema_manager):
+    """Regression test: hex/decimal display mode is cached per index-based path; deleting
+    a list item shifts sibling indices, so the cache must be reset on structural deletes
+    to avoid an unrelated field inheriting a deleted item's stale hex toggle."""
+    ui_inst = StructUI(mock_app_state, mock_schema_manager)
+    setattr(ui_inst, '_is_hex_channel_root_connections.yaml_0', True)
+    setattr(ui_inst, '_is_hex_channel_root_connections.yaml_1', False)
+
+    ui_inst._clear_hex_display_cache()
+
+    assert not hasattr(ui_inst, '_is_hex_channel_root_connections.yaml_0')
+    assert not hasattr(ui_inst, '_is_hex_channel_root_connections.yaml_1')
+
 def test_on_hex_change_handler(mock_app_state, mock_schema_manager):
     ui_inst = StructUI(mock_app_state, mock_schema_manager)
     ui_inst.selected_path = {"value": "root"}

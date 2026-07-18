@@ -7,6 +7,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-02
 - File-based (XML) (001-xml-support)
 - Python 3.9+ + NiceGUI >= 1.4.0, PyYAML >= 6.0.1 (001-hex-decimal-toggle)
 - Local YAML files (001-hex-decimal-toggle)
+- Python 3 + NiceGUI (001-dynamic-options-references)
+- JSON/YAML/XML files (001-dynamic-options-references)
 
 - Node 18+ (Docusaurus), Python 3.9+ (Examples) + `docusaurus`, `nicegui`, `structui` (001-docs-site)
 
@@ -26,10 +28,10 @@ cd src; pytest; ruff check .
 Node 18+ (Docusaurus), Python 3.9+ (Examples): Follow standard conventions
 
 ## Recent Changes
+- 001-dynamic-options-references: Added Python 3 + NiceGUI
 - 001-hex-decimal-toggle: Added Python 3.9+ + NiceGUI >= 1.4.0, PyYAML >= 6.0.1
 - 001-xml-support: Added Python >= 3.9 + NiceGUI, pyyaml, built-in xml module (or 3rd party xmltodict - documented in research.md)
 
-- 001-docs-site: Added Node 18+ (Docusaurus), Python 3.9+ (Examples) + `docusaurus`, `nicegui`, `structui`
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
